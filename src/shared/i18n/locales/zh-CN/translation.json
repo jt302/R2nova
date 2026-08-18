@@ -3,7 +3,8 @@
 		"name": "r2nova",
 		"tagline": "Cloudflare R2 桌面客户端",
 		"updateAvailable": "有新版本 {{version}}，可用 brew upgrade r2nova 更新",
-		"commandPalette": "命令面板"
+		"commandPalette": "命令面板",
+		"searchHint": "搜索命令或存储桶"
 	},
 	"nav": {
 		"buckets": "存储桶",
@@ -11,8 +12,12 @@
 		"transfers": "传输",
 		"control": "控制面",
 		"settings": "设置",
+		"accounts": "账号",
+		"browser": "浏览器",
 		"newTab": "新标签",
-		"closeTab": "关闭标签"
+		"closeTab": "关闭标签",
+		"collapseSidebar": "收起侧栏",
+		"expandSidebar": "展开侧栏"
 	},
 	"common": {
 		"save": "保存",
@@ -36,6 +41,7 @@
 		"enabled": "已开启",
 		"disabled": "已关闭",
 		"advanced": "高级",
+		"more": "更多",
 		"confirmDelete": "确定删除所选对象？此操作不可恢复。"
 	},
 	"profile": {
@@ -69,7 +75,18 @@
 		"secretUnchanged": "留空则保持原密钥",
 		"tokenUnchanged": "留空则保持原 Token",
 		"invalidTitle": "凭据无效",
-		"invalidHint": "无法列出存储桶。请检查 Account ID、Access Key 和管辖区，然后重新保存。"
+		"invalidHint": "无法列出存储桶。请检查 Account ID、Access Key 和管辖区，然后重新保存。",
+		"useAccount": "使用此账号",
+		"switch": "切换账号",
+		"noAccount": "未选择账号"
+	},
+	"onboarding": {
+		"browse": "浏览与整理",
+		"browseBody": "虚拟化列表、反向多选、拖放上传，文件夹层级会保留。",
+		"transfer": "真正的传输引擎",
+		"transferBody": "等长分片、断点续传，适配 R2 而不是通用 S3。",
+		"cost": "成本可见",
+		"costBody": "Class A/B 当场计数。高成本列举会先报价再执行。"
 	},
 	"browser": {
 		"prefixPlaceholder": "过滤当前页",
@@ -86,7 +103,13 @@
 		"selectBucketBody": "从左侧选择存储桶，或创建一个新桶。",
 		"root": "根目录",
 		"copyDest": "目标 bucket/key",
-		"movePrefix": "目标前缀"
+		"movePrefix": "目标前缀",
+		"back": "后退",
+		"forward": "前进",
+		"items": "{{count}} 项",
+		"emptyFolder": "这个前缀是空的",
+		"emptyFolderBody": "上传文件，或把本地文件拖进窗口。",
+		"truncated": "当前只加载了部分对象"
 	},
 	"command": {
 		"title": "命令面板",
@@ -94,7 +117,12 @@
 		"newTab": "新标签页",
 		"themeDark": "深色主题",
 		"themeLight": "浅色主题",
-		"language": "切换语言"
+		"themeSystem": "跟随系统",
+		"language": "切换语言",
+		"objects": "打开对象浏览器",
+		"settings": "打开控制面",
+		"accounts": "打开账号",
+		"transfers": "打开传输队列"
 	},
 	"transfer": {
 		"queue": "传输队列",
@@ -102,6 +130,8 @@
 		"active": "{{count}} 个进行中",
 		"upload": "上传",
 		"download": "下载",
+		"emptyTitle": "队列是空的",
+		"emptyBody": "上传、下载或拖放文件后会显示在这里。",
 		"status": {
 			"running": "进行中",
 			"finished": "完成",
@@ -117,14 +147,19 @@
 		"classB": "Class B",
 		"free": "免费",
 		"reset": "清零计数",
-		"quote": "此操作大约消耗 {{count}} 次 Class A 请求。浏览比下载贵 12.5 倍。"
+		"quote": "此操作大约消耗 {{count}} 次 Class A 请求。浏览比下载贵 12.5 倍。",
+		"session": "本次会话",
+		"estimated": "约 {{amount}} USD"
 	},
 	"preview": {
 		"expires": "有效期",
 		"hour": "1 小时",
 		"day": "1 天",
 		"week": "7 天",
-		"copied": "链接已复制"
+		"copied": "链接已复制",
+		"metadata": "元数据",
+		"loading": "正在准备预览…",
+		"unavailable": "这种文件只能下载，不能预览。"
 	},
 	"control": {
 		"createBucket": "创建存储桶",
@@ -162,6 +197,12 @@
 		"daysUnit": "天",
 		"lockRules": "锁定规则",
 		"noRules": "暂无规则",
-		"currentUrl": "当前地址"
+		"currentUrl": "当前地址",
+		"sectionOverview": "概览",
+		"sectionAccess": "访问",
+		"sectionRules": "规则",
+		"sectionDanger": "危险操作",
+		"noBucketTitle": "先选择存储桶",
+		"noBucketBody": "控制面设置针对当前桶。从侧栏选一个，或新建。"
 	}
 }

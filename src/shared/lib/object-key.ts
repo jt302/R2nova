@@ -74,3 +74,28 @@ export function fileKind(key: string): 'image' | 'video' | 'pdf' | 'text' | 'mar
 	}
 	return 'other';
 }
+
+export function formatModified(iso?: string | null, locale?: string): string {
+	if (!iso) {
+		return '';
+	}
+	const date = new Date(iso);
+	if (Number.isNaN(date.getTime())) {
+		return iso;
+	}
+	return date.toLocaleString(locale, {
+		year: 'numeric',
+		month: '2-digit',
+		day: '2-digit',
+		hour: '2-digit',
+		minute: '2-digit',
+	});
+}
+
+export function profileInitials(name: string): string {
+	const trimmed = name.trim();
+	if (!trimmed) {
+		return 'R';
+	}
+	return Array.from(trimmed).slice(0, 2).join('').toUpperCase();
+}

@@ -3,7 +3,8 @@
 		"name": "r2nova",
 		"tagline": "Cloudflare R2 desktop client",
 		"updateAvailable": "Update {{version}} is available — brew upgrade r2nova",
-		"commandPalette": "Command palette"
+		"commandPalette": "Command palette",
+		"searchHint": "Search commands or buckets"
 	},
 	"nav": {
 		"buckets": "Buckets",
@@ -11,8 +12,12 @@
 		"transfers": "Transfers",
 		"control": "Control plane",
 		"settings": "Settings",
+		"accounts": "Accounts",
+		"browser": "Browser",
 		"newTab": "New tab",
-		"closeTab": "Close tab"
+		"closeTab": "Close tab",
+		"collapseSidebar": "Collapse sidebar",
+		"expandSidebar": "Expand sidebar"
 	},
 	"common": {
 		"save": "Save",
@@ -36,6 +41,7 @@
 		"enabled": "On",
 		"disabled": "Off",
 		"advanced": "Advanced",
+		"more": "More",
 		"confirmDelete": "Delete the selected objects? This cannot be undone."
 	},
 	"profile": {
@@ -69,7 +75,18 @@
 		"secretUnchanged": "Leave blank to keep the current secret",
 		"tokenUnchanged": "Leave blank to keep the current token",
 		"invalidTitle": "Invalid credentials",
-		"invalidHint": "Could not list buckets. Check the Account ID, Access Key, and jurisdiction, then save again."
+		"invalidHint": "Could not list buckets. Check the Account ID, Access Key, and jurisdiction, then save again.",
+		"useAccount": "Use this account",
+		"switch": "Switch account",
+		"noAccount": "No account selected"
+	},
+	"onboarding": {
+		"browse": "Browse and organize",
+		"browseBody": "Virtualized listing, inverse multi-select, and drag-and-drop uploads that keep folder trees.",
+		"transfer": "A real transfer engine",
+		"transferBody": "Equal part sizes and resume support, built for R2 instead of generic S3.",
+		"cost": "Costs stay visible",
+		"costBody": "Class A/B counters in the session. Expensive listings are quoted first."
 	},
 	"browser": {
 		"prefixPlaceholder": "Filter current page",
@@ -86,7 +103,13 @@
 		"selectBucketBody": "Choose a bucket on the left, or create a new one.",
 		"root": "Root",
 		"copyDest": "Destination bucket/key",
-		"movePrefix": "Destination prefix"
+		"movePrefix": "Destination prefix",
+		"back": "Back",
+		"forward": "Forward",
+		"items": "{{count}} items",
+		"emptyFolder": "This prefix is empty",
+		"emptyFolderBody": "Upload files, or drag local files into the window.",
+		"truncated": "Only part of this listing is loaded"
 	},
 	"command": {
 		"title": "Command palette",
@@ -94,7 +117,12 @@
 		"newTab": "New tab",
 		"themeDark": "Dark theme",
 		"themeLight": "Light theme",
-		"language": "Toggle language"
+		"themeSystem": "System theme",
+		"language": "Toggle language",
+		"objects": "Open object browser",
+		"settings": "Open control plane",
+		"accounts": "Open accounts",
+		"transfers": "Open transfer queue"
 	},
 	"transfer": {
 		"queue": "Transfer queue",
@@ -102,6 +130,8 @@
 		"active": "{{count}} in progress",
 		"upload": "Upload",
 		"download": "Download",
+		"emptyTitle": "Queue is empty",
+		"emptyBody": "Uploads, downloads, and dropped files will show up here.",
 		"status": {
 			"running": "Running",
 			"finished": "Done",
@@ -117,14 +147,19 @@
 		"classB": "Class B",
 		"free": "Free",
 		"reset": "Reset counters",
-		"quote": "This will cost about {{count}} Class A calls. Browsing is 12.5× more expensive than downloads."
+		"quote": "This will cost about {{count}} Class A calls. Browsing is 12.5× more expensive than downloads.",
+		"session": "This session",
+		"estimated": "About {{amount}} USD"
 	},
 	"preview": {
 		"expires": "Expires",
 		"hour": "1 hour",
 		"day": "1 day",
 		"week": "7 days",
-		"copied": "Link copied"
+		"copied": "Link copied",
+		"metadata": "Metadata",
+		"loading": "Preparing preview…",
+		"unavailable": "This file type can be downloaded, but not previewed."
 	},
 	"control": {
 		"createBucket": "Create bucket",
@@ -162,6 +197,12 @@
 		"daysUnit": "days",
 		"lockRules": "Lock rules",
 		"noRules": "No rules",
-		"currentUrl": "Current URL"
+		"currentUrl": "Current URL",
+		"sectionOverview": "Overview",
+		"sectionAccess": "Access",
+		"sectionRules": "Rules",
+		"sectionDanger": "Danger zone",
+		"noBucketTitle": "Select a bucket first",
+		"noBucketBody": "Control-plane settings apply to the current bucket. Pick one in the sidebar or create one."
 	}
 }

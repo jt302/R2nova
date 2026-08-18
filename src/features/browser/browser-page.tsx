@@ -1,9 +1,28 @@
 import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { open, save } from '@tauri-apps/plugin-dialog';
-import { ChevronRight, Download, RefreshCw, Upload } from 'lucide-react';
+import {
+	ChevronLeft,
+	ChevronRight,
+	Download,
+	HardDrive,
+	RefreshCw,
+	Search,
+	Upload,
+} from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import {
+	AlertDialog,
+	AlertDialogAction,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import {
 	Breadcrumb,
 	BreadcrumbItem,
@@ -21,13 +40,25 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from '@/components/ui/dialog';
+import {
+	Empty,
+	EmptyDescription,
+	EmptyHeader,
+	EmptyMedia,
+	EmptyTitle,
+} from '@/components/ui/empty';
+import { Field, FieldGroup, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
+import { InputGroup, InputGroupAddon, InputGroupInput } from '@/components/ui/input-group';
+import { Separator } from '@/components/ui/separator';
+import { Spinner } from '@/components/ui/spinner';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import type { ObjectItem } from '@/entities/profile/types';
 import { ObjectTable } from '@/features/browser/object-table';
 import { api } from '@/shared/api/backend';
 import { isAppError } from '@/shared/api/tauri-invoke';
 import { queryKeys } from '@/shared/config/query-keys';
-import { joinKey, parentPrefix } from '@/shared/lib/object-key';
+import { joinKey } from '@/shared/lib/object-key';
 import {
 	clearSelection,
 	emptySelection,
@@ -35,7 +66,7 @@ import {
 	selectedKeys,
 } from '@/shared/lib/selection';
 import { createTransferChannel } from '@/shared/lib/transfer-channel';
-import { useNavStore } from '@/store/nav';
+import { useActiveTab, useCurrentLocation, useNavStore } from '@/store/nav';
 
 type ConfirmKind = 'delete' | 'loadMore' | null;
 
@@ -43,13 +74,15 @@ export function BrowserPage({ onPreview }: { onPreview: (key: string) => void })
 	const { t } = useTranslation();
 	const qc = useQueryClient();
 	const profileId = useNavStore((s) => s.profileId);
-	const tabs = useNavStore((s) => s.tabs);
-	const activeTabId = useNavStore((s) => s.activeTabId);
 	const go = useNavStore((s) => s.go);
-	const tab = tabs.find((item) => item.id === activeTabId) ?? tabs[0];
-	const loc = tab.stack[tab.index];
+	const back = useNavStore((s) => s.back);
+	const forward = useNavStore((s) => s.forward);
+	const tab = useActiveTab();
+	const loc = useCurrentLocation();
 	const bucket = loc.bucket;
 	const prefix = loc.prefix;
+	const canBack = tab.index > 0;
+	const canForward = tab.index < tab.stack.length - 1;
 	const [filter, setFilter] = useState('');
 	const [selection, setSelection] = useState<Selection>(emptySelection());
 	const [renameSrc, setRenameSrc] = useState('');
@@ -200,23 +233,56 @@ export function BrowserPage({ onPreview }: { onPreview: (key: string) => void })
 
 	if (!bucket) {
 		return (
-			<div className="flex h-full flex-col items-center justify-center gap-2 p-8 text-center">
-				<p className="text-base font-medium">{t('browser.selectBucket')}</p>
-				<p className="max-w-sm text-sm text-muted-foreground">{t('browser.selectBucketBody')}</p>
-			</div>
+			<Empty className="h-full border-0">
+				<EmptyHeader>
+					<EmptyMedia variant="icon">
+						<HardDrive />
+					</EmptyMedia>
+					<EmptyTitle>{t('browser.selectBucket')}</EmptyTitle>
+					<EmptyDescription>{t('browser.selectBucketBody')}</EmptyDescription>
+				</EmptyHeader>
+			</Empty>
 		);
 	}
 
 	return (
 		<div className="flex h-full min-h-0 flex-col">
-			<div className="flex h-12 shrink-0 items-center gap-2 border-b bg-card px-3">
+			<div className="flex h-11 shrink-0 items-center gap-2 border-b bg-card px-3">
+				<div className="flex items-center gap-1">
+					<Tooltip>
+						<TooltipTrigger asChild>
+							<Button
+								variant="ghost"
+								size="icon-sm"
+								disabled={!canBack}
+								onClick={back}
+								aria-label={t('browser.back')}
+							>
+								<ChevronLeft />
+							</Button>
+						</TooltipTrigger>
+						<TooltipContent>{t('browser.back')}</TooltipContent>
+					</Tooltip>
+					<Tooltip>
+						<TooltipTrigger asChild>
+							<Button
+								variant="ghost"
+								size="icon-sm"
+								disabled={!canForward}
+								onClick={forward}
+								aria-label={t('browser.forward')}
+							>
+								<ChevronRight />
+							</Button>
+						</TooltipTrigger>
+						<TooltipContent>{t('browser.forward')}</TooltipContent>
+					</Tooltip>
+				</div>
+				<Separator orientation="vertical" className="h-5" />
 				<Breadcrumb className="min-w-0 flex-1">
 					<BreadcrumbList className="flex-nowrap overflow-hidden">
 						<BreadcrumbItem>
-							<BreadcrumbLink
-								className="cursor-pointer"
-								onClick={() => go({ bucket, prefix: parentPrefix(prefix) })}
-							>
+							<BreadcrumbLink className="cursor-pointer" onClick={() => go({ bucket, prefix: '' })}>
 								{bucket}
 							</BreadcrumbLink>
 						</BreadcrumbItem>
@@ -241,18 +307,26 @@ export function BrowserPage({ onPreview }: { onPreview: (key: string) => void })
 						))}
 					</BreadcrumbList>
 				</Breadcrumb>
-				<Input
-					className="h-8 w-44"
-					placeholder={t('browser.prefixPlaceholder')}
-					value={filter}
-					onChange={(e) => setFilter(e.target.value)}
-				/>
+				<InputGroup className="h-8 w-52">
+					<InputGroupAddon>
+						<Search />
+					</InputGroupAddon>
+					<InputGroupInput
+						placeholder={t('browser.prefixPlaceholder')}
+						value={filter}
+						onChange={(e) => setFilter(e.target.value)}
+					/>
+				</InputGroup>
 				<Button variant="outline" size="sm" onClick={() => void objects.refetch()}>
-					<RefreshCw />
+					{objects.isFetching ? (
+						<Spinner data-icon="inline-start" />
+					) : (
+						<RefreshCw data-icon="inline-start" />
+					)}
 					{t('common.refresh')}
 				</Button>
 				<Button size="sm" onClick={() => void upload()}>
-					<Upload />
+					<Upload data-icon="inline-start" />
 					{t('common.upload')}
 				</Button>
 				<Button
@@ -266,10 +340,50 @@ export function BrowserPage({ onPreview }: { onPreview: (key: string) => void })
 						}
 					}}
 				>
-					<Download />
+					<Download data-icon="inline-start" />
 					{t('common.download')}
 				</Button>
 			</div>
+			{selected.length > 0 ? (
+				<div className="flex h-10 shrink-0 items-center gap-2 border-b bg-muted/30 px-3">
+					<span className="text-sm">{t('common.selected', { count: selected.length })}</span>
+					<div className="flex-1" />
+					<Button
+						size="xs"
+						variant="outline"
+						onClick={() => {
+							setRenameSrc(selected[0] ?? '');
+							setRenameTo(selected[0]?.split('/').pop() ?? '');
+							setRenameOpen(true);
+						}}
+					>
+						{t('common.rename')}
+					</Button>
+					<Button
+						size="xs"
+						variant="outline"
+						onClick={() => {
+							setCopyDest(joinKey(prefix, selected[0]?.split('/').pop() ?? ''));
+							setCopyOpen(true);
+						}}
+					>
+						{t('common.copy')}
+					</Button>
+					<Button
+						size="xs"
+						variant="outline"
+						onClick={() => {
+							setMovePrefix(prefix);
+							setMoveOpen(true);
+						}}
+					>
+						{t('common.move')}
+					</Button>
+					<Button size="xs" variant="destructive" onClick={() => setConfirm('delete')}>
+						{t('common.delete')}
+					</Button>
+				</div>
+			) : null}
 			<div className="min-h-0 flex-1">
 				<ObjectTable
 					rows={rows}
@@ -295,12 +409,19 @@ export function BrowserPage({ onPreview }: { onPreview: (key: string) => void })
 					onDelete={() => setConfirm('delete')}
 				/>
 			</div>
-			<div className="flex h-9 shrink-0 items-center gap-3 border-t px-3 text-xs text-muted-foreground">
+			<div className="flex min-h-9 shrink-0 items-center gap-3 border-t px-3 py-1.5 text-xs text-muted-foreground">
+				<span>{t('browser.items', { count: rows.length })}</span>
 				<span>{t('common.selected', { count: selected.length })}</span>
 				{hasNextPage ? (
-					<Button variant="ghost" size="xs" onClick={() => void requestLoadMore()}>
-						{t('browser.loadMore')}
-					</Button>
+					<Alert className="ml-auto w-auto flex-row items-center py-1.5">
+						<AlertTitle>{t('browser.truncated')}</AlertTitle>
+						<AlertDescription className="flex items-center gap-2">
+							{t('browser.sortDisabled')}
+							<Button size="xs" variant="outline" onClick={() => void requestLoadMore()}>
+								{t('browser.loadMore')}
+							</Button>
+						</AlertDescription>
+					</Alert>
 				) : null}
 			</div>
 			<Dialog open={renameOpen} onOpenChange={setRenameOpen}>
@@ -309,7 +430,16 @@ export function BrowserPage({ onPreview }: { onPreview: (key: string) => void })
 						<DialogTitle>{t('common.rename')}</DialogTitle>
 						<DialogDescription className="sr-only">{t('common.rename')}</DialogDescription>
 					</DialogHeader>
-					<Input value={renameTo} onChange={(e) => setRenameTo(e.target.value)} />
+					<FieldGroup className="gap-4">
+						<Field>
+							<FieldLabel htmlFor="rename-to">{t('browser.colName')}</FieldLabel>
+							<Input
+								id="rename-to"
+								value={renameTo}
+								onChange={(e) => setRenameTo(e.target.value)}
+							/>
+						</Field>
+					</FieldGroup>
 					<DialogFooter>
 						<Button variant="outline" onClick={() => setRenameOpen(false)}>
 							{t('common.cancel')}
@@ -341,11 +471,17 @@ export function BrowserPage({ onPreview }: { onPreview: (key: string) => void })
 						<DialogTitle>{t('common.copy')}</DialogTitle>
 						<DialogDescription>{t('browser.copyDest')}</DialogDescription>
 					</DialogHeader>
-					<Input
-						value={copyDest}
-						onChange={(e) => setCopyDest(e.target.value)}
-						placeholder={t('browser.copyDest')}
-					/>
+					<FieldGroup className="gap-4">
+						<Field>
+							<FieldLabel htmlFor="copy-dest">{t('browser.copyDest')}</FieldLabel>
+							<Input
+								id="copy-dest"
+								value={copyDest}
+								onChange={(e) => setCopyDest(e.target.value)}
+								placeholder={t('browser.copyDest')}
+							/>
+						</Field>
+					</FieldGroup>
 					<DialogFooter>
 						<Button variant="outline" onClick={() => setCopyOpen(false)}>
 							{t('common.cancel')}
@@ -381,7 +517,16 @@ export function BrowserPage({ onPreview }: { onPreview: (key: string) => void })
 						<DialogTitle>{t('common.move')}</DialogTitle>
 						<DialogDescription>{t('browser.movePrefix')}</DialogDescription>
 					</DialogHeader>
-					<Input value={movePrefix} onChange={(e) => setMovePrefix(e.target.value)} />
+					<FieldGroup className="gap-4">
+						<Field>
+							<FieldLabel htmlFor="move-prefix">{t('browser.movePrefix')}</FieldLabel>
+							<Input
+								id="move-prefix"
+								value={movePrefix}
+								onChange={(e) => setMovePrefix(e.target.value)}
+							/>
+						</Field>
+					</FieldGroup>
 					<DialogFooter>
 						<Button variant="outline" onClick={() => setMoveOpen(false)}>
 							{t('common.cancel')}
@@ -406,21 +551,19 @@ export function BrowserPage({ onPreview }: { onPreview: (key: string) => void })
 					</DialogFooter>
 				</DialogContent>
 			</Dialog>
-			<Dialog open={confirm !== null} onOpenChange={(open) => !open && setConfirm(null)}>
-				<DialogContent>
-					<DialogHeader>
-						<DialogTitle>{t('common.confirm')}</DialogTitle>
-						<DialogDescription>
+			<AlertDialog open={confirm !== null} onOpenChange={(open) => !open && setConfirm(null)}>
+				<AlertDialogContent>
+					<AlertDialogHeader>
+						<AlertDialogTitle>{t('common.confirm')}</AlertDialogTitle>
+						<AlertDialogDescription>
 							{confirm === 'delete'
 								? t('common.confirmDelete')
 								: t('cost.quote', { count: loadQuote })}
-						</DialogDescription>
-					</DialogHeader>
-					<DialogFooter>
-						<Button variant="outline" onClick={() => setConfirm(null)}>
-							{t('common.cancel')}
-						</Button>
-						<Button
+						</AlertDialogDescription>
+					</AlertDialogHeader>
+					<AlertDialogFooter>
+						<AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+						<AlertDialogAction
 							variant={confirm === 'delete' ? 'destructive' : 'default'}
 							onClick={() => {
 								if (confirm === 'delete') {
@@ -431,10 +574,10 @@ export function BrowserPage({ onPreview }: { onPreview: (key: string) => void })
 							}}
 						>
 							{t('common.confirm')}
-						</Button>
-					</DialogFooter>
-				</DialogContent>
-			</Dialog>
+						</AlertDialogAction>
+					</AlertDialogFooter>
+				</AlertDialogContent>
+			</AlertDialog>
 		</div>
 	);
 }

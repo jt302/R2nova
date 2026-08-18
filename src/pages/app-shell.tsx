@@ -1,17 +1,37 @@
 import { useQuery } from '@tanstack/react-query';
-import { ArrowUpDown, Cloud, Languages, Moon, Plus, Search, Sun, X } from 'lucide-react';
+import {
+	ArrowUpDown,
+	CircleDollarSign,
+	Cloud,
+	FolderOpen,
+	Languages,
+	Moon,
+	Search,
+	Sun,
+} from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
 import {
-	Sheet,
-	SheetContent,
-	SheetDescription,
-	SheetHeader,
-	SheetTitle,
-} from '@/components/ui/sheet';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+	Empty,
+	EmptyContent,
+	EmptyDescription,
+	EmptyHeader,
+	EmptyMedia,
+	EmptyTitle,
+} from '@/components/ui/empty';
+import {
+	Item,
+	ItemContent,
+	ItemDescription,
+	ItemGroup,
+	ItemMedia,
+	ItemTitle,
+} from '@/components/ui/item';
+import { Kbd, KbdGroup } from '@/components/ui/kbd';
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
+import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import type { Profile } from '@/entities/profile/types';
 import { BrowserPage } from '@/features/browser/browser-page';
@@ -24,24 +44,44 @@ import { QueuePanel, useActiveTransferCount } from '@/features/transfer/queue-pa
 import { api } from '@/shared/api/backend';
 import { queryKeys } from '@/shared/config/query-keys';
 import { useNavStore } from '@/store/nav';
+import { ActivityRail } from '@/widgets/activity-rail';
 import { BucketSidebar } from '@/widgets/bucket-sidebar';
 import { CostBar } from '@/widgets/cost-bar';
-import { ProfileSwitcher } from '@/widgets/profile-switcher';
+import { TabStrip } from '@/widgets/tab-strip';
+
+function useThemeClass(theme: 'light' | 'dark' | 'system') {
+	useEffect(() => {
+		const root = document.documentElement;
+		const apply = () => {
+			const dark =
+				theme === 'dark' ||
+				(theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+			root.classList.toggle('dark', dark);
+		};
+		apply();
+		if (theme !== 'system') {
+			return;
+		}
+		const mq = window.matchMedia('(prefers-color-scheme: dark)');
+		mq.addEventListener('change', apply);
+		return () => mq.removeEventListener('change', apply);
+	}, [theme]);
+}
 
 export function AppShell() {
 	const { t, i18n } = useTranslation();
-	const tabs = useNavStore((s) => s.tabs);
-	const activeTabId = useNavStore((s) => s.activeTabId);
-	const setActiveTab = useNavStore((s) => s.setActiveTab);
-	const newTab = useNavStore((s) => s.newTab);
-	const closeTab = useNavStore((s) => s.closeTab);
-	const back = useNavStore((s) => s.back);
-	const forward = useNavStore((s) => s.forward);
 	const theme = useNavStore((s) => s.theme);
 	const setTheme = useNavStore((s) => s.setTheme);
 	const profileId = useNavStore((s) => s.profileId);
+	const mainView = useNavStore((s) => s.mainView);
+	const setMainView = useNavStore((s) => s.setMainView);
+	const newTab = useNavStore((s) => s.newTab);
+	const closeTab = useNavStore((s) => s.closeTab);
+	const activeTabId = useNavStore((s) => s.activeTabId);
+	const back = useNavStore((s) => s.back);
+	const forward = useNavStore((s) => s.forward);
+	const sidebarCollapsed = useNavStore((s) => s.sidebarCollapsed);
 	const [previewKey, setPreviewKey] = useState<string | null>(null);
-	const [mainView, setMainView] = useState<'objects' | 'settings' | 'accounts'>('objects');
 	const [transfersOpen, setTransfersOpen] = useState(false);
 	const [commandOpen, setCommandOpen] = useState(false);
 	const [formOpen, setFormOpen] = useState(false);
@@ -59,42 +99,50 @@ export function AppShell() {
 		staleTime: 60_000,
 	});
 
-	useEffect(() => {
-		const root = document.documentElement;
-		const dark =
-			theme === 'dark' ||
-			(theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
-		root.classList.toggle('dark', dark);
-	}, [theme]);
+	useThemeClass(theme);
 
 	useEffect(() => {
 		const onKey = (e: KeyboardEvent) => {
-			if (e.metaKey || e.ctrlKey) {
-				if (e.key.toLowerCase() === 't') {
-					e.preventDefault();
-					newTab();
-				}
-				if (e.key.toLowerCase() === 'w') {
-					e.preventDefault();
-					closeTab(activeTabId);
-				}
-				if (e.key.toLowerCase() === 'k') {
-					e.preventDefault();
-					setCommandOpen((v) => !v);
-				}
-				if (e.key === '[') {
-					e.preventDefault();
-					back();
-				}
-				if (e.key === ']') {
-					e.preventDefault();
-					forward();
-				}
+			if (!(e.metaKey || e.ctrlKey)) {
+				return;
+			}
+			const key = e.key.toLowerCase();
+			if (key === 't') {
+				e.preventDefault();
+				newTab();
+			}
+			if (key === 'w') {
+				e.preventDefault();
+				closeTab(activeTabId);
+			}
+			if (key === 'k') {
+				e.preventDefault();
+				setCommandOpen((v) => !v);
+			}
+			if (e.key === '[') {
+				e.preventDefault();
+				back();
+			}
+			if (e.key === ']') {
+				e.preventDefault();
+				forward();
+			}
+			if (key === '1') {
+				e.preventDefault();
+				setMainView('objects');
+			}
+			if (key === '2') {
+				e.preventDefault();
+				setMainView('settings');
+			}
+			if (key === '3') {
+				e.preventDefault();
+				setMainView('accounts');
 			}
 		};
 		window.addEventListener('keydown', onKey);
 		return () => window.removeEventListener('keydown', onKey);
-	}, [activeTabId, back, closeTab, forward, newTab]);
+	}, [activeTabId, back, closeTab, forward, newTab, setMainView]);
 
 	const update =
 		latest && version && latest !== version ? t('app.updateAvailable', { version: latest }) : null;
@@ -114,57 +162,40 @@ export function AppShell() {
 		setFormOpen(true);
 	}
 
+	const showSidebar = Boolean(profileId) && mainView !== 'accounts' && !sidebarCollapsed;
+	const showPreview = Boolean(previewKey) && mainView === 'objects';
+
 	return (
 		<div className="flex h-full flex-col bg-background text-foreground">
-			<header className="flex h-12 shrink-0 items-center gap-2 border-b bg-card px-3">
-				<div className="flex min-w-0 flex-1 items-center gap-1">
-					{tabs.map((tab) => (
-						<button
-							key={tab.id}
-							type="button"
-							className={`group flex max-w-48 items-center gap-1 truncate rounded-md px-2.5 py-1 text-sm ${
-								tab.id === activeTabId ? 'bg-accent text-accent-foreground' : 'hover:bg-muted'
-							}`}
-							onClick={() => setActiveTab(tab.id)}
-							onAuxClick={(e) => {
-								if (e.button === 1) {
-									closeTab(tab.id);
-								}
-							}}
-						>
-							<span className="truncate">{tab.title}</span>
-							<span
-								className="rounded-sm p-0.5 opacity-0 hover:bg-background group-hover:opacity-100"
-								onClick={(e) => {
-									e.stopPropagation();
-									closeTab(tab.id);
-								}}
-							>
-								<X className="size-3" />
-							</span>
-						</button>
-					))}
-					<Tooltip>
-						<TooltipTrigger asChild>
-							<Button variant="ghost" size="icon-sm" onClick={newTab} aria-label={t('nav.newTab')}>
-								<Plus />
-							</Button>
-						</TooltipTrigger>
-						<TooltipContent>{t('nav.newTab')}</TooltipContent>
-					</Tooltip>
-				</div>
-				<ProfileSwitcher />
-				<Button variant="outline" size="sm" onClick={openAdd}>
-					{t('profile.add')}
-				</Button>
-				<Button variant="outline" size="sm" onClick={() => setMainView('accounts')}>
-					{t('profile.manage')}
+			{update ? (
+				<Alert className="rounded-none border-x-0 border-t-0">
+					<AlertTitle>{t('app.name')}</AlertTitle>
+					<AlertDescription>{update}</AlertDescription>
+				</Alert>
+			) : null}
+			<header className="flex h-11 shrink-0 items-center gap-2 border-b bg-titlebar px-2">
+				<TabStrip />
+				<Button
+					variant="outline"
+					size="sm"
+					className="hidden h-8 max-w-64 justify-between gap-3 text-muted-foreground sm:inline-flex"
+					onClick={() => setCommandOpen(true)}
+				>
+					<span className="flex min-w-0 items-center gap-2">
+						<Search />
+						<span className="truncate">{t('app.searchHint')}</span>
+					</span>
+					<KbdGroup>
+						<Kbd>⌘</Kbd>
+						<Kbd>K</Kbd>
+					</KbdGroup>
 				</Button>
 				<Tooltip>
 					<TooltipTrigger asChild>
 						<Button
 							variant="ghost"
 							size="icon-sm"
+							className="sm:hidden"
 							onClick={() => setCommandOpen(true)}
 							aria-label={t('app.commandPalette')}
 						>
@@ -201,92 +232,145 @@ export function AppShell() {
 					</TooltipTrigger>
 					<TooltipContent>{dark ? t('command.themeLight') : t('command.themeDark')}</TooltipContent>
 				</Tooltip>
-				<span className="text-xs text-muted-foreground">v{version}</span>
+				{version ? (
+					<span className="pr-1 text-xs tabular-nums text-muted-foreground">v{version}</span>
+				) : null}
 			</header>
-			{update ? <div className="bg-accent px-4 py-2 text-sm">{update}</div> : null}
-			<main className="flex min-h-0 flex-1">
-				{mainView === 'accounts' ? (
-					<AccountsPage onAdd={openAdd} onEdit={openEdit} onClose={() => setMainView('objects')} />
-				) : !profileId ? (
-					<div className="flex flex-1 flex-col items-center justify-center gap-3 p-10 text-center">
-						<Cloud className="size-12 text-muted-foreground" />
-						<h1 className="text-xl font-semibold">{t('profile.emptyTitle')}</h1>
-						<p className="max-w-md text-sm text-muted-foreground">{t('profile.emptyBody')}</p>
-						<Button onClick={openAdd}>{t('profile.add')}</Button>
-					</div>
-				) : (
-					<ResizablePanelGroup orientation="horizontal" className="h-full">
-						<ResizablePanel defaultSize="18" minSize="12" maxSize="32" className="min-w-[200px]">
-							<BucketSidebar onManage={() => setMainView('accounts')} />
-						</ResizablePanel>
-						<ResizableHandle />
-						<ResizablePanel
-							defaultSize={previewKey && mainView === 'objects' ? '54' : '82'}
-							minSize="30"
-						>
-							<div className="flex h-full min-h-0 flex-col">
-								<div className="flex h-11 shrink-0 items-center border-b px-3">
-									<Tabs
-										value={mainView}
-										onValueChange={(value) => setMainView(value as 'objects' | 'settings')}
+			<div className="flex min-h-0 flex-1">
+				<ActivityRail
+					transferCount={transferCount}
+					transfersOpen={transfersOpen}
+					onTransfers={() => setTransfersOpen((v) => !v)}
+					onAdd={openAdd}
+				/>
+				<main className="flex min-h-0 min-w-0 flex-1">
+					{mainView === 'accounts' ? (
+						<AccountsPage onAdd={openAdd} onEdit={openEdit} />
+					) : !profileId ? (
+						<Onboarding onAdd={openAdd} />
+					) : (
+						<ResizablePanelGroup orientation="horizontal" className="h-full">
+							{showSidebar ? (
+								<>
+									<ResizablePanel
+										defaultSize="20"
+										minSize="14"
+										maxSize="32"
+										className="min-w-[220px]"
 									>
-										<TabsList>
-											<TabsTrigger value="objects">{t('nav.objects')}</TabsTrigger>
-											<TabsTrigger value="settings">{t('nav.settings')}</TabsTrigger>
-										</TabsList>
-									</Tabs>
-								</div>
-								<div className="min-h-0 flex-1">
-									{mainView === 'settings' ? (
-										<ControlPanel />
-									) : currentProfile?.capability === 'invalid' ? (
-										<InvalidAccountState
-											lastError={currentProfile.lastError}
-											onEdit={() => openEdit(currentProfile)}
-											onManage={() => setMainView('accounts')}
-										/>
-									) : (
-										<BrowserPage onPreview={setPreviewKey} />
-									)}
-								</div>
-							</div>
-						</ResizablePanel>
-						{previewKey && mainView === 'objects' ? (
-							<>
-								<ResizableHandle />
-								<ResizablePanel defaultSize="28" minSize="18" maxSize="45">
-									<PreviewPane objectKey={previewKey} onClose={() => setPreviewKey(null)} />
-								</ResizablePanel>
-							</>
-						) : null}
-					</ResizablePanelGroup>
-				)}
-			</main>
-			<footer className="flex h-10 shrink-0 items-center gap-3 border-t bg-card px-3">
+										<BucketSidebar onAdd={openAdd} onManage={() => setMainView('accounts')} />
+									</ResizablePanel>
+									<ResizableHandle />
+								</>
+							) : null}
+							<ResizablePanel defaultSize={showPreview ? '52' : '80'} minSize="30">
+								{mainView === 'settings' ? (
+									<ControlPanel />
+								) : currentProfile?.capability === 'invalid' ? (
+									<InvalidAccountState
+										lastError={currentProfile.lastError}
+										onEdit={() => openEdit(currentProfile)}
+										onManage={() => setMainView('accounts')}
+									/>
+								) : (
+									<BrowserPage onPreview={setPreviewKey} />
+								)}
+							</ResizablePanel>
+							{showPreview ? (
+								<>
+									<ResizableHandle />
+									<ResizablePanel defaultSize="28" minSize="18" maxSize="45">
+										<PreviewPane objectKey={previewKey!} onClose={() => setPreviewKey(null)} />
+									</ResizablePanel>
+								</>
+							) : null}
+						</ResizablePanelGroup>
+					)}
+				</main>
+			</div>
+			{transfersOpen ? (
+				<div className="flex h-56 shrink-0 flex-col border-t bg-card">
+					<div className="flex h-10 shrink-0 items-center gap-2 px-4">
+						<p className="text-sm font-medium">{t('transfer.queue')}</p>
+						<div className="flex-1" />
+						<Button variant="ghost" size="xs" onClick={() => setTransfersOpen(false)}>
+							{t('common.close')}
+						</Button>
+					</div>
+					<Separator />
+					<div className="min-h-0 flex-1 overflow-auto">
+						<QueuePanel />
+					</div>
+				</div>
+			) : null}
+			<footer className="flex h-9 shrink-0 items-center gap-3 border-t bg-titlebar px-3">
 				<CostBar />
 				<Button
 					className="ml-auto"
 					variant="ghost"
 					size="sm"
-					onClick={() => setTransfersOpen(true)}
+					onClick={() => setTransfersOpen((v) => !v)}
 				>
-					<ArrowUpDown />
 					{transferCount > 0 ? t('transfer.active', { count: transferCount }) : t('transfer.idle')}
 				</Button>
 			</footer>
-			<Sheet open={transfersOpen} onOpenChange={setTransfersOpen}>
-				<SheetContent side="bottom" className="h-[min(28rem,70vh)]">
-					<SheetHeader>
-						<SheetTitle>{t('transfer.queue')}</SheetTitle>
-						<SheetDescription className="sr-only">{t('transfer.queue')}</SheetDescription>
-					</SheetHeader>
-					<div className="min-h-0 flex-1 overflow-auto">
-						<QueuePanel />
-					</div>
-				</SheetContent>
-			</Sheet>
-			<CommandPalette open={commandOpen} onOpenChange={setCommandOpen} />
+			<CommandPalette
+				open={commandOpen}
+				onOpenChange={setCommandOpen}
+				onTransfers={() => setTransfersOpen(true)}
+			/>
 			<ProfileFormDialog open={formOpen} onOpenChange={setFormOpen} profile={editing} />
+		</div>
+	);
+}
+
+function Onboarding({ onAdd }: { onAdd: () => void }) {
+	const { t } = useTranslation();
+	return (
+		<div className="flex h-full w-full items-center justify-center overflow-auto p-8">
+			<div className="flex w-full max-w-xl flex-col gap-8">
+				<Empty className="border-dashed">
+					<EmptyHeader>
+						<EmptyMedia variant="icon">
+							<Cloud />
+						</EmptyMedia>
+						<EmptyTitle>{t('profile.emptyTitle')}</EmptyTitle>
+						<EmptyDescription>{t('profile.emptyBody')}</EmptyDescription>
+					</EmptyHeader>
+					<EmptyContent>
+						<Button onClick={onAdd}>{t('profile.add')}</Button>
+					</EmptyContent>
+				</Empty>
+				<ItemGroup className="gap-3">
+					<Item variant="muted" size="sm">
+						<ItemMedia variant="icon">
+							<FolderOpen />
+						</ItemMedia>
+						<ItemContent>
+							<ItemTitle>{t('onboarding.browse')}</ItemTitle>
+							<ItemDescription>{t('onboarding.browseBody')}</ItemDescription>
+						</ItemContent>
+					</Item>
+					<Item variant="muted" size="sm">
+						<ItemMedia variant="icon">
+							<ArrowUpDown />
+						</ItemMedia>
+						<ItemContent>
+							<ItemTitle>{t('onboarding.transfer')}</ItemTitle>
+							<ItemDescription>{t('onboarding.transferBody')}</ItemDescription>
+						</ItemContent>
+					</Item>
+					<Item variant="muted" size="sm">
+						<ItemMedia variant="icon">
+							<CircleDollarSign />
+						</ItemMedia>
+						<ItemContent>
+							<ItemTitle>{t('onboarding.cost')}</ItemTitle>
+							<ItemDescription>{t('onboarding.costBody')}</ItemDescription>
+						</ItemContent>
+					</Item>
+				</ItemGroup>
+			</div>
 		</div>
 	);
 }

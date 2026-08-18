@@ -10,15 +10,17 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from '@/components/ui/dialog';
+import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import {
 	Select,
 	SelectContent,
+	SelectGroup,
 	SelectItem,
 	SelectTrigger,
 	SelectValue,
 } from '@/components/ui/select';
+import { Spinner } from '@/components/ui/spinner';
 import type { Jurisdiction, Profile } from '@/entities/profile/types';
 import { toastProbeResult } from '@/features/profile/accounts-page';
 import { api } from '@/shared/api/backend';
@@ -75,6 +77,7 @@ export function ProfileFormDialog({
 	const setProfileId = useNavStore((s) => s.setProfileId);
 	const editing = Boolean(profile);
 	const [form, setForm] = useState<Form>(emptyForm);
+	const accountInvalid = Boolean(form.accountId.trim() && !isAccountId(form.accountId));
 
 	useEffect(() => {
 		if (!open) {
@@ -111,42 +114,41 @@ export function ProfileFormDialog({
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
-			<DialogContent>
+			<DialogContent className="sm:max-w-lg">
 				<DialogHeader>
 					<DialogTitle>{editing ? t('profile.edit') : t('profile.add')}</DialogTitle>
 					<DialogDescription>{t('profile.emptyBody')}</DialogDescription>
 				</DialogHeader>
-				<div className="grid gap-3">
-					<div className="grid gap-1.5">
-						<Label htmlFor="profile-name">{t('profile.name')}</Label>
+				<FieldGroup className="gap-4">
+					<Field>
+						<FieldLabel htmlFor="profile-name">{t('profile.name')}</FieldLabel>
 						<Input
 							id="profile-name"
 							value={form.name}
 							onChange={(e) => setForm({ ...form, name: e.target.value })}
 						/>
-					</div>
-					<div className="grid gap-1.5">
-						<Label htmlFor="profile-account">{t('profile.accountId')}</Label>
+					</Field>
+					<Field data-invalid={accountInvalid || undefined}>
+						<FieldLabel htmlFor="profile-account">{t('profile.accountId')}</FieldLabel>
 						<Input
 							id="profile-account"
 							value={form.accountId}
+							aria-invalid={accountInvalid}
 							onChange={(e) => setForm({ ...form, accountId: e.target.value })}
 						/>
-						<p className="text-xs text-muted-foreground">{t('profile.accountIdHint')}</p>
-						{form.accountId.trim() && !isAccountId(form.accountId) ? (
-							<p className="text-xs text-destructive">{t('profile.accountIdInvalid')}</p>
-						) : null}
-					</div>
-					<div className="grid gap-1.5">
-						<Label htmlFor="profile-ak">{t('profile.accessKeyId')}</Label>
+						<FieldDescription>{t('profile.accountIdHint')}</FieldDescription>
+						{accountInvalid ? <FieldError>{t('profile.accountIdInvalid')}</FieldError> : null}
+					</Field>
+					<Field>
+						<FieldLabel htmlFor="profile-ak">{t('profile.accessKeyId')}</FieldLabel>
 						<Input
 							id="profile-ak"
 							value={form.accessKeyId}
 							onChange={(e) => setForm({ ...form, accessKeyId: e.target.value })}
 						/>
-					</div>
-					<div className="grid gap-1.5">
-						<Label htmlFor="profile-sk">{t('profile.secretAccessKey')}</Label>
+					</Field>
+					<Field>
+						<FieldLabel htmlFor="profile-sk">{t('profile.secretAccessKey')}</FieldLabel>
 						<Input
 							id="profile-sk"
 							type="password"
@@ -154,9 +156,9 @@ export function ProfileFormDialog({
 							onChange={(e) => setForm({ ...form, secretAccessKey: e.target.value })}
 							placeholder={editing ? t('profile.secretUnchanged') : undefined}
 						/>
-					</div>
-					<div className="grid gap-1.5">
-						<Label htmlFor="profile-token">{t('profile.cfToken')}</Label>
+					</Field>
+					<Field>
+						<FieldLabel htmlFor="profile-token">{t('profile.cfToken')}</FieldLabel>
 						<Input
 							id="profile-token"
 							type="password"
@@ -164,9 +166,9 @@ export function ProfileFormDialog({
 							onChange={(e) => setForm({ ...form, cfApiToken: e.target.value })}
 							placeholder={editing ? t('profile.tokenUnchanged') : undefined}
 						/>
-					</div>
-					<div className="grid gap-1.5">
-						<Label>{t('profile.jurisdiction')}</Label>
+					</Field>
+					<Field>
+						<FieldLabel>{t('profile.jurisdiction')}</FieldLabel>
 						<Select
 							value={form.jurisdiction}
 							onValueChange={(value) => setForm({ ...form, jurisdiction: value as Jurisdiction })}
@@ -175,23 +177,26 @@ export function ProfileFormDialog({
 								<SelectValue />
 							</SelectTrigger>
 							<SelectContent>
-								<SelectItem value="default">{t('profile.jurisdictionDefault')}</SelectItem>
-								<SelectItem value="eu">{t('profile.jurisdictionEu')}</SelectItem>
-								<SelectItem value="fedramp">{t('profile.jurisdictionFedramp')}</SelectItem>
+								<SelectGroup>
+									<SelectItem value="default">{t('profile.jurisdictionDefault')}</SelectItem>
+									<SelectItem value="eu">{t('profile.jurisdictionEu')}</SelectItem>
+									<SelectItem value="fedramp">{t('profile.jurisdictionFedramp')}</SelectItem>
+								</SelectGroup>
 							</SelectContent>
 						</Select>
-					</div>
+					</Field>
 					{save.error ? (
-						<p className="text-sm text-destructive">
+						<FieldError>
 							{isAppError(save.error) ? save.error.message : String(save.error)}
-						</p>
+						</FieldError>
 					) : null}
-				</div>
+				</FieldGroup>
 				<DialogFooter>
 					<Button variant="outline" onClick={() => onOpenChange(false)}>
 						{t('common.cancel')}
 					</Button>
 					<Button disabled={!canSave || save.isPending} onClick={() => save.mutate()}>
+						{save.isPending ? <Spinner data-icon="inline-start" /> : null}
 						{t('common.save')}
 					</Button>
 				</DialogFooter>

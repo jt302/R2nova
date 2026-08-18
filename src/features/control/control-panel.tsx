@@ -1,10 +1,19 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { HardDrive, Shield } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+	Card,
+	CardAction,
+	CardContent,
+	CardDescription,
+	CardFooter,
+	CardHeader,
+	CardTitle,
+} from '@/components/ui/card';
 import {
 	Dialog,
 	DialogContent,
@@ -13,9 +22,17 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from '@/components/ui/dialog';
+import {
+	Empty,
+	EmptyDescription,
+	EmptyHeader,
+	EmptyMedia,
+	EmptyTitle,
+} from '@/components/ui/empty';
+import { Field, FieldGroup, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import {
 	type CorsRuleForm,
@@ -35,7 +52,8 @@ import {
 import { api } from '@/shared/api/backend';
 import { isAppError } from '@/shared/api/tauri-invoke';
 import { queryKeys } from '@/shared/config/query-keys';
-import { useNavStore } from '@/store/nav';
+import { useCurrentLocation, useNavStore } from '@/store/nav';
+import { PageHeader } from '@/widgets/page-header';
 
 function AdvancedJson({
 	data,
@@ -50,30 +68,32 @@ function AdvancedJson({
 		setText(stringifyJson(data));
 	}, [data]);
 	return (
-		<details className="mt-4">
+		<details>
 			<summary className="cursor-pointer text-sm text-muted-foreground">
 				{t('common.advanced')}
 			</summary>
-			<Textarea
-				className="mt-2 font-mono text-xs"
-				rows={8}
-				value={text}
-				onChange={(e) => setText(e.target.value)}
-			/>
-			<Button
-				className="mt-2"
-				size="sm"
-				variant="outline"
-				onClick={async () => {
-					try {
-						await onSave(parseJson(text));
-					} catch {
-						toast.error(t('control.jsonInvalid'));
-					}
-				}}
-			>
-				{t('common.save')}
-			</Button>
+			<div className="mt-2 flex flex-col gap-2">
+				<Textarea
+					className="font-mono text-xs"
+					rows={8}
+					value={text}
+					onChange={(e) => setText(e.target.value)}
+				/>
+				<Button
+					size="sm"
+					variant="outline"
+					className="self-start"
+					onClick={async () => {
+						try {
+							await onSave(parseJson(text));
+						} catch {
+							toast.error(t('control.jsonInvalid'));
+						}
+					}}
+				>
+					{t('common.save')}
+				</Button>
+			</div>
 		</details>
 	);
 }
@@ -83,16 +103,15 @@ export function ControlPanel() {
 	const qc = useQueryClient();
 	const profileId = useNavStore((s) => s.profileId);
 	const go = useNavStore((s) => s.go);
-	const tabs = useNavStore((s) => s.tabs);
-	const activeTabId = useNavStore((s) => s.activeTabId);
-	const tab = tabs.find((item) => item.id === activeTabId) ?? tabs[0];
-	const bucket = tab.stack[tab.index].bucket;
+	const loc = useCurrentLocation();
+	const bucket = loc.bucket;
 	const { data: profiles = [] } = useQuery({
 		queryKey: queryKeys.profiles,
 		queryFn: api.listProfiles,
 	});
 	const profile = profiles.find((p) => p.id === profileId);
 	const admin = profile?.capability === 'admin';
+	const [section, setSection] = useState('overview');
 	const [newBucket, setNewBucket] = useState('');
 	const [deleteOpen, setDeleteOpen] = useState(false);
 	const [corsRules, setCorsRules] = useState<CorsRuleForm[]>(parseCorsRules(null));
@@ -168,14 +187,15 @@ export function ControlPanel() {
 
 	if (!admin) {
 		return (
-			<div className="flex h-full items-center justify-center p-8">
-				<Card className="max-w-md">
-					<CardHeader>
-						<CardTitle>{t('nav.settings')}</CardTitle>
-						<CardDescription>{t('profile.needAdmin')}</CardDescription>
-					</CardHeader>
-				</Card>
-			</div>
+			<Empty className="h-full border-0">
+				<EmptyHeader>
+					<EmptyMedia variant="icon">
+						<Shield />
+					</EmptyMedia>
+					<EmptyTitle>{t('nav.settings')}</EmptyTitle>
+					<EmptyDescription>{t('profile.needAdmin')}</EmptyDescription>
+				</EmptyHeader>
+			</Empty>
 		);
 	}
 
@@ -186,79 +206,133 @@ export function ControlPanel() {
 
 	return (
 		<div className="h-full overflow-auto">
-			<div className="mx-auto flex max-w-3xl flex-col gap-4 p-6">
-				<div>
-					<h1 className="text-lg font-semibold">{t('nav.settings')}</h1>
-					<p className="text-sm text-muted-foreground">{bucket || t('browser.selectBucket')}</p>
-				</div>
+			<div className="mx-auto flex max-w-3xl flex-col gap-6 p-8">
+				<PageHeader title={t('nav.settings')} description={bucket || t('browser.selectBucket')} />
 
-				<Card>
-					<CardHeader>
-						<CardTitle>{t('control.createBucket')}</CardTitle>
-						<CardDescription>{t('control.createBucketDesc')}</CardDescription>
-					</CardHeader>
-					<CardContent className="flex gap-2">
-						<Input
-							value={newBucket}
-							onChange={(e) => setNewBucket(e.target.value)}
-							placeholder={t('control.bucketName')}
-						/>
-						<Button
-							disabled={!newBucket.trim() || createBucket.isPending}
-							onClick={() => createBucket.mutate()}
-						>
-							{t('common.save')}
-						</Button>
-					</CardContent>
-				</Card>
+				<Tabs value={section} onValueChange={setSection}>
+					<TabsList variant="line">
+						<TabsTrigger value="overview">{t('control.sectionOverview')}</TabsTrigger>
+						<TabsTrigger value="access" disabled={!bucket}>
+							{t('control.sectionAccess')}
+						</TabsTrigger>
+						<TabsTrigger value="rules" disabled={!bucket}>
+							{t('control.sectionRules')}
+						</TabsTrigger>
+						<TabsTrigger value="danger" disabled={!bucket}>
+							{t('control.sectionDanger')}
+						</TabsTrigger>
+					</TabsList>
 
-				{bucket ? (
-					<Card>
-						<CardHeader>
-							<CardTitle>{t('control.deleteBucket')}</CardTitle>
-							<CardDescription>{t('control.deleteBucketDesc')}</CardDescription>
-						</CardHeader>
-						<CardContent>
-							<Button variant="destructive" onClick={() => setDeleteOpen(true)}>
-								{t('control.deleteBucket')}
-							</Button>
-						</CardContent>
-					</Card>
-				) : null}
+					<TabsContent value="overview" className="flex flex-col gap-4 pt-4">
+						<Card>
+							<CardHeader>
+								<CardTitle>{t('control.createBucket')}</CardTitle>
+								<CardDescription>{t('control.createBucketDesc')}</CardDescription>
+							</CardHeader>
+							<CardContent>
+								<FieldGroup className="gap-3">
+									<Field orientation="horizontal">
+										<FieldLabel htmlFor="create-bucket" className="sr-only">
+											{t('control.bucketName')}
+										</FieldLabel>
+										<Input
+											id="create-bucket"
+											value={newBucket}
+											onChange={(e) => setNewBucket(e.target.value)}
+											placeholder={t('control.bucketName')}
+										/>
+										<Button
+											disabled={!newBucket.trim() || createBucket.isPending}
+											onClick={() => createBucket.mutate()}
+										>
+											{t('common.save')}
+										</Button>
+									</Field>
+								</FieldGroup>
+							</CardContent>
+						</Card>
 
-				<Card>
-					<CardHeader>
-						<CardTitle>{t('control.metrics')}</CardTitle>
-						<CardDescription>{t('control.metricsDesc')}</CardDescription>
-					</CardHeader>
-					<CardContent>
-						{metricsList.length === 0 ? (
-							<p className="text-sm text-muted-foreground">{t('common.empty')}</p>
+						<Card>
+							<CardHeader>
+								<CardTitle>{t('control.metrics')}</CardTitle>
+								<CardDescription>{t('control.metricsDesc')}</CardDescription>
+							</CardHeader>
+							<CardContent>
+								{metricsList.length === 0 ? (
+									<p className="text-sm text-muted-foreground">{t('common.empty')}</p>
+								) : (
+									<dl className="grid grid-cols-2 gap-3">
+										{metricsList.map(([key, value]) => (
+											<div key={key} className="rounded-lg border bg-muted/30 p-3">
+												<dt className="text-xs text-muted-foreground">{key}</dt>
+												<dd className="mt-1 text-sm font-medium tabular-nums">{value}</dd>
+											</div>
+										))}
+									</dl>
+								)}
+							</CardContent>
+						</Card>
+
+						{!bucket ? (
+							<Empty>
+								<EmptyHeader>
+									<EmptyMedia variant="icon">
+										<HardDrive />
+									</EmptyMedia>
+									<EmptyTitle>{t('control.noBucketTitle')}</EmptyTitle>
+									<EmptyDescription>{t('control.noBucketBody')}</EmptyDescription>
+								</EmptyHeader>
+							</Empty>
 						) : (
-							<dl className="grid grid-cols-2 gap-3">
-								{metricsList.map(([key, value]) => (
-									<div key={key}>
-										<dt className="text-xs text-muted-foreground">{key}</dt>
-										<dd className="text-sm font-medium">{value}</dd>
-									</div>
-								))}
-							</dl>
+							<Card>
+								<CardHeader>
+									<CardTitle>{t('control.multipart')}</CardTitle>
+									<CardDescription>{t('control.multipartDesc')}</CardDescription>
+								</CardHeader>
+								<CardContent>
+									{(multipart.data ?? []).length === 0 ? (
+										<p className="text-sm text-muted-foreground">{t('control.noUploads')}</p>
+									) : (
+										<div className="flex flex-col gap-2">
+											{(multipart.data ?? []).map((u) => (
+												<div key={u.uploadId} className="flex items-center gap-2 text-sm">
+													<span className="min-w-0 flex-1 truncate">{u.key}</span>
+													<Badge variant="outline">{u.uploadId.slice(0, 8)}</Badge>
+													<Button
+														size="xs"
+														variant="ghost"
+														onClick={async () => {
+															if (!profileId) {
+																return;
+															}
+															await api.abortMultipart({
+																profileId,
+																bucket,
+																key: u.key,
+																uploadId: u.uploadId,
+															});
+															void qc.invalidateQueries({
+																queryKey: queryKeys.multipart(profileId, bucket),
+															});
+														}}
+													>
+														{t('control.abort')}
+													</Button>
+												</div>
+											))}
+										</div>
+									)}
+								</CardContent>
+							</Card>
 						)}
-					</CardContent>
-				</Card>
+					</TabsContent>
 
-				{bucket ? (
-					<>
+					<TabsContent value="access" className="flex flex-col gap-4 pt-4">
 						<Card>
 							<CardHeader>
 								<CardTitle>{t('control.devUrl')}</CardTitle>
 								<CardDescription>{t('control.devUrlDesc')}</CardDescription>
-							</CardHeader>
-							<CardContent className="space-y-3">
-								<div className="flex items-center justify-between gap-3">
-									<Label htmlFor="dev-url">
-										{devParsed.enabled ? t('common.enabled') : t('common.disabled')}
-									</Label>
+								<CardAction>
 									<Switch
 										id="dev-url"
 										checked={devParsed.enabled}
@@ -276,14 +350,16 @@ export function ControlPanel() {
 											}
 										}}
 									/>
-								</div>
-								{devParsed.url ? (
+								</CardAction>
+							</CardHeader>
+							{devParsed.url ? (
+								<CardContent>
 									<p className="text-sm">
 										<span className="text-muted-foreground">{t('control.currentUrl')}: </span>
 										{devParsed.url}
 									</p>
-								) : null}
-							</CardContent>
+								</CardContent>
+							) : null}
 						</Card>
 
 						<Card>
@@ -295,7 +371,7 @@ export function ControlPanel() {
 								{domainList.length === 0 ? (
 									<p className="text-sm text-muted-foreground">{t('control.noDomains')}</p>
 								) : (
-									<ul className="space-y-1 text-sm">
+									<ul className="flex flex-col gap-1 text-sm">
 										{domainList.map((d) => (
 											<li key={d}>{d}</li>
 										))}
@@ -309,92 +385,97 @@ export function ControlPanel() {
 								<CardTitle>{t('control.cors')}</CardTitle>
 								<CardDescription>{t('control.corsDesc')}</CardDescription>
 							</CardHeader>
-							<CardContent className="space-y-4">
+							<CardContent className="flex flex-col gap-4">
 								{corsRules.map((rule, i) => (
-									<div key={rule.id} className="space-y-2 rounded-lg border p-3">
-										<div className="grid gap-2">
-											<Label>{t('control.origins')}</Label>
-											<Input
-												value={rule.origins}
-												onChange={(e) =>
-													setCorsRules((list) =>
-														list.map((item, idx) =>
-															idx === i ? { ...item, origins: e.target.value } : item,
-														),
-													)
-												}
-											/>
-										</div>
-										<div className="grid gap-2">
-											<Label>{t('control.methods')}</Label>
-											<Input
-												value={rule.methods}
-												onChange={(e) =>
-													setCorsRules((list) =>
-														list.map((item, idx) =>
-															idx === i ? { ...item, methods: e.target.value } : item,
-														),
-													)
-												}
-											/>
-										</div>
-										<div className="grid gap-2">
-											<Label>{t('control.headers')}</Label>
-											<Input
-												value={rule.headers}
-												onChange={(e) =>
-													setCorsRules((list) =>
-														list.map((item, idx) =>
-															idx === i ? { ...item, headers: e.target.value } : item,
-														),
-													)
-												}
-											/>
-										</div>
+									<div key={rule.id} className="flex flex-col gap-3 rounded-lg border p-3">
+										<FieldGroup className="gap-3">
+											<Field>
+												<FieldLabel>{t('control.origins')}</FieldLabel>
+												<Input
+													value={rule.origins}
+													onChange={(e) =>
+														setCorsRules((list) =>
+															list.map((item, idx) =>
+																idx === i ? { ...item, origins: e.target.value } : item,
+															),
+														)
+													}
+												/>
+											</Field>
+											<Field>
+												<FieldLabel>{t('control.methods')}</FieldLabel>
+												<Input
+													value={rule.methods}
+													onChange={(e) =>
+														setCorsRules((list) =>
+															list.map((item, idx) =>
+																idx === i ? { ...item, methods: e.target.value } : item,
+															),
+														)
+													}
+												/>
+											</Field>
+											<Field>
+												<FieldLabel>{t('control.headers')}</FieldLabel>
+												<Input
+													value={rule.headers}
+													onChange={(e) =>
+														setCorsRules((list) =>
+															list.map((item, idx) =>
+																idx === i ? { ...item, headers: e.target.value } : item,
+															),
+														)
+													}
+												/>
+											</Field>
+										</FieldGroup>
 										<Button
 											size="sm"
 											variant="ghost"
+											className="self-start"
 											onClick={() => setCorsRules((list) => list.filter((_, idx) => idx !== i))}
 										>
 											{t('control.removeRule')}
 										</Button>
 									</div>
 								))}
-								<div className="flex gap-2">
-									<Button
-										size="sm"
-										variant="outline"
-										onClick={() =>
-											setCorsRules((list) => [
-												...list,
-												{
-													id: `cors-${list.length + 1}`,
-													origins: '',
-													methods: 'GET',
-													headers: '',
-												},
-											])
+							</CardContent>
+							<CardFooter className="flex-wrap gap-2 border-t">
+								<Button
+									size="sm"
+									variant="outline"
+									onClick={() =>
+										setCorsRules((list) => [
+											...list,
+											{
+												id: `cors-${list.length + 1}`,
+												origins: '',
+												methods: 'GET',
+												headers: '',
+											},
+										])
+									}
+								>
+									{t('control.addRule')}
+								</Button>
+								<Button
+									size="sm"
+									onClick={async () => {
+										if (!profileId) {
+											return;
 										}
-									>
-										{t('control.addRule')}
-									</Button>
-									<Button
-										size="sm"
-										onClick={async () => {
-											if (!profileId) {
-												return;
-											}
-											try {
-												await api.cfPutCors(profileId, bucket, corsToPayload(corsRules));
-												toast.success(t('common.save'));
-											} catch (err) {
-												fail(err);
-											}
-										}}
-									>
-										{t('common.save')}
-									</Button>
-								</div>
+										try {
+											await api.cfPutCors(profileId, bucket, corsToPayload(corsRules));
+											toast.success(t('common.save'));
+										} catch (err) {
+											fail(err);
+										}
+									}}
+								>
+									{t('common.save')}
+								</Button>
+							</CardFooter>
+							<CardContent>
 								<AdvancedJson
 									data={cors.data}
 									onSave={async (value) => {
@@ -407,20 +488,22 @@ export function ControlPanel() {
 								/>
 							</CardContent>
 						</Card>
+					</TabsContent>
 
+					<TabsContent value="rules" className="flex flex-col gap-4 pt-4">
 						<Card>
 							<CardHeader>
 								<CardTitle>{t('control.lifecycle')}</CardTitle>
 								<CardDescription>{t('control.lifecycleDesc')}</CardDescription>
 							</CardHeader>
-							<CardContent className="space-y-4">
+							<CardContent className="flex flex-col gap-4">
 								{lifeRules.map((rule, i) => (
 									<div
 										key={rule.id || i}
 										className="grid grid-cols-[1fr_100px_auto] items-end gap-2"
 									>
-										<div className="grid gap-1.5">
-											<Label>{t('control.prefix')}</Label>
+										<Field>
+											<FieldLabel>{t('control.prefix')}</FieldLabel>
 											<Input
 												value={rule.prefix}
 												onChange={(e) =>
@@ -431,9 +514,9 @@ export function ControlPanel() {
 													)
 												}
 											/>
-										</div>
-										<div className="grid gap-1.5">
-											<Label>{t('control.days')}</Label>
+										</Field>
+										<Field>
+											<FieldLabel>{t('control.days')}</FieldLabel>
 											<Input
 												type="number"
 												min={1}
@@ -446,7 +529,7 @@ export function ControlPanel() {
 													)
 												}
 											/>
-										</div>
+										</Field>
 										<Button
 											size="sm"
 											variant="ghost"
@@ -456,36 +539,38 @@ export function ControlPanel() {
 										</Button>
 									</div>
 								))}
-								<div className="flex gap-2">
-									<Button
-										size="sm"
-										variant="outline"
-										onClick={() =>
-											setLifeRules((list) => [
-												...list,
-												{ id: `expire-${list.length + 1}`, prefix: '', days: '30' },
-											])
+							</CardContent>
+							<CardFooter className="flex-wrap gap-2 border-t">
+								<Button
+									size="sm"
+									variant="outline"
+									onClick={() =>
+										setLifeRules((list) => [
+											...list,
+											{ id: `expire-${list.length + 1}`, prefix: '', days: '30' },
+										])
+									}
+								>
+									{t('control.addRule')}
+								</Button>
+								<Button
+									size="sm"
+									onClick={async () => {
+										if (!profileId) {
+											return;
 										}
-									>
-										{t('control.addRule')}
-									</Button>
-									<Button
-										size="sm"
-										onClick={async () => {
-											if (!profileId) {
-												return;
-											}
-											try {
-												await api.cfPutLifecycle(profileId, bucket, lifecycleToPayload(lifeRules));
-												toast.success(t('common.save'));
-											} catch (err) {
-												fail(err);
-											}
-										}}
-									>
-										{t('common.save')}
-									</Button>
-								</div>
+										try {
+											await api.cfPutLifecycle(profileId, bucket, lifecycleToPayload(lifeRules));
+											toast.success(t('common.save'));
+										} catch (err) {
+											fail(err);
+										}
+									}}
+								>
+									{t('common.save')}
+								</Button>
+							</CardFooter>
+							<CardContent>
 								<AdvancedJson
 									data={life.data}
 									onSave={async (value) => {
@@ -503,12 +588,7 @@ export function ControlPanel() {
 							<CardHeader>
 								<CardTitle>{t('control.lock')}</CardTitle>
 								<CardDescription>{t('control.lockDesc')}</CardDescription>
-							</CardHeader>
-							<CardContent className="space-y-3">
-								<div className="flex items-center justify-between gap-3">
-									<Label htmlFor="lock-switch">
-										{lockOn ? t('common.enabled') : t('common.disabled')}
-									</Label>
+								<CardAction>
 									<Switch
 										id="lock-switch"
 										checked={lockOn}
@@ -526,7 +606,9 @@ export function ControlPanel() {
 											}
 										}}
 									/>
-								</div>
+								</CardAction>
+							</CardHeader>
+							<CardContent>
 								<AdvancedJson
 									data={lock.data}
 									onSave={async (value) => {
@@ -545,8 +627,8 @@ export function ControlPanel() {
 								<CardTitle>{t('control.events')}</CardTitle>
 								<CardDescription>{t('control.eventsDesc')}</CardDescription>
 							</CardHeader>
-							<CardContent>
-								<pre className="max-h-40 overflow-auto rounded-md bg-muted p-3 text-xs">
+							<CardContent className="flex flex-col gap-3">
+								<pre className="max-h-40 overflow-auto rounded-md bg-muted p-3 font-mono text-xs">
 									{stringifyJson(events.data)}
 								</pre>
 								<AdvancedJson
@@ -561,49 +643,22 @@ export function ControlPanel() {
 								/>
 							</CardContent>
 						</Card>
+					</TabsContent>
 
+					<TabsContent value="danger" className="flex flex-col gap-4 pt-4">
 						<Card>
 							<CardHeader>
-								<CardTitle>{t('control.multipart')}</CardTitle>
-								<CardDescription>{t('control.multipartDesc')}</CardDescription>
+								<CardTitle>{t('control.deleteBucket')}</CardTitle>
+								<CardDescription>{t('control.deleteBucketDesc')}</CardDescription>
 							</CardHeader>
 							<CardContent>
-								{(multipart.data ?? []).length === 0 ? (
-									<p className="text-sm text-muted-foreground">{t('control.noUploads')}</p>
-								) : (
-									<div className="space-y-2">
-										{(multipart.data ?? []).map((u) => (
-											<div key={u.uploadId} className="flex items-center gap-2 text-sm">
-												<span className="min-w-0 flex-1 truncate">{u.key}</span>
-												<Badge variant="outline">{u.uploadId.slice(0, 8)}</Badge>
-												<Button
-													size="xs"
-													variant="ghost"
-													onClick={async () => {
-														if (!profileId) {
-															return;
-														}
-														await api.abortMultipart({
-															profileId,
-															bucket,
-															key: u.key,
-															uploadId: u.uploadId,
-														});
-														void qc.invalidateQueries({
-															queryKey: queryKeys.multipart(profileId, bucket),
-														});
-													}}
-												>
-													{t('control.abort')}
-												</Button>
-											</div>
-										))}
-									</div>
-								)}
+								<Button variant="destructive" onClick={() => setDeleteOpen(true)}>
+									{t('control.deleteBucket')}
+								</Button>
 							</CardContent>
 						</Card>
-					</>
-				) : null}
+					</TabsContent>
+				</Tabs>
 			</div>
 
 			<Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>

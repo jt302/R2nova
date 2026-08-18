@@ -1,24 +1,54 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Plus } from 'lucide-react';
+import { KeyRound, MoreHorizontal, Plus, ShieldAlert } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import {
-	Dialog,
-	DialogContent,
-	DialogDescription,
-	DialogFooter,
-	DialogHeader,
-	DialogTitle,
-} from '@/components/ui/dialog';
+	AlertDialog,
+	AlertDialogAction,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuGroup,
+	DropdownMenuItem,
+	DropdownMenuSeparator,
+	DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+	Empty,
+	EmptyContent,
+	EmptyDescription,
+	EmptyHeader,
+	EmptyMedia,
+	EmptyTitle,
+} from '@/components/ui/empty';
+import {
+	Item,
+	ItemActions,
+	ItemContent,
+	ItemDescription,
+	ItemGroup,
+	ItemTitle,
+} from '@/components/ui/item';
+import { Spinner } from '@/components/ui/spinner';
 import type { Profile } from '@/entities/profile/types';
 import { api } from '@/shared/api/backend';
 import { isAppError } from '@/shared/api/tauri-invoke';
 import { queryKeys } from '@/shared/config/query-keys';
+import { profileInitials } from '@/shared/lib/object-key';
 import { useNavStore } from '@/store/nav';
+import { CapabilityBadge } from '@/widgets/capability-badge';
+import { PageHeader } from '@/widgets/page-header';
 
 function keyPrefix(value: string): string {
 	return value.length <= 8 ? value : `${value.slice(0, 8)}…`;
@@ -35,16 +65,15 @@ export function toastProbeResult(t: (key: string) => string, profile: Profile) {
 export function AccountsPage({
 	onAdd,
 	onEdit,
-	onClose,
 }: {
 	onAdd: () => void;
 	onEdit: (profile: Profile) => void;
-	onClose: () => void;
 }) {
 	const { t } = useTranslation();
 	const qc = useQueryClient();
 	const profileId = useNavStore((s) => s.profileId);
 	const setProfileId = useNavStore((s) => s.setProfileId);
+	const setMainView = useNavStore((s) => s.setMainView);
 	const { data: profiles = [] } = useQuery({
 		queryKey: queryKeys.profiles,
 		queryFn: api.listProfiles,
@@ -75,88 +104,124 @@ export function AccountsPage({
 
 	return (
 		<div className="h-full overflow-auto">
-			<div className="mx-auto flex max-w-3xl flex-col gap-4 p-6">
-				<div className="flex items-center gap-2">
-					<Button variant="ghost" size="icon-sm" onClick={onClose} aria-label={t('common.close')}>
-						<ArrowLeft />
-					</Button>
-					<div className="min-w-0 flex-1">
-						<h1 className="text-lg font-semibold">{t('profile.manage')}</h1>
-						<p className="text-sm text-muted-foreground">{t('profile.emptyBody')}</p>
-					</div>
-					<Button size="sm" onClick={onAdd}>
-						<Plus />
-						{t('profile.add')}
-					</Button>
-				</div>
+			<div className="mx-auto flex max-w-3xl flex-col gap-6 p-8">
+				<PageHeader
+					title={t('profile.manage')}
+					description={t('profile.emptyBody')}
+					actions={
+						<Button size="sm" onClick={onAdd}>
+							<Plus data-icon="inline-start" />
+							{t('profile.add')}
+						</Button>
+					}
+				/>
 				{profiles.length === 0 ? (
-					<p className="py-10 text-center text-sm text-muted-foreground">{t('common.empty')}</p>
+					<Empty>
+						<EmptyHeader>
+							<EmptyMedia variant="icon">
+								<KeyRound />
+							</EmptyMedia>
+							<EmptyTitle>{t('profile.emptyTitle')}</EmptyTitle>
+							<EmptyDescription>{t('profile.emptyBody')}</EmptyDescription>
+						</EmptyHeader>
+						<EmptyContent>
+							<Button onClick={onAdd}>
+								<Plus data-icon="inline-start" />
+								{t('profile.add')}
+							</Button>
+						</EmptyContent>
+					</Empty>
 				) : (
-					<div className="grid gap-3">
+					<ItemGroup className="gap-3">
 						{profiles.map((p) => (
-							<Card key={p.id}>
-								<CardHeader className="gap-2">
-									<div className="flex items-start justify-between gap-3">
-										<div className="min-w-0">
-											<CardTitle className="truncate">{p.name}</CardTitle>
-											<CardDescription className="truncate">{p.accountId}</CardDescription>
-										</div>
-										<Badge variant={p.capability === 'invalid' ? 'destructive' : 'secondary'}>
-											{t(`profile.capability.${p.capability}`)}
-										</Badge>
-									</div>
-									{p.lastError ? (
-										<p className="text-xs break-all text-destructive">{p.lastError}</p>
-									) : null}
-								</CardHeader>
-								<CardContent className="flex flex-wrap items-center gap-2">
-									<p className="mr-auto text-xs text-muted-foreground">
-										{t('profile.accessKeyId')}: {keyPrefix(p.accessKeyId)} ·{' '}
+							<Item key={p.id} variant="outline">
+								<Avatar className="size-10">
+									<AvatarFallback>{profileInitials(p.name)}</AvatarFallback>
+								</Avatar>
+								<ItemContent>
+									<ItemTitle>
+										{p.name}
+										<CapabilityBadge capability={p.capability} />
+									</ItemTitle>
+									<ItemDescription>
+										{p.accountId} · {t('profile.accessKeyId')}: {keyPrefix(p.accessKeyId)} ·{' '}
 										{t(`profile.jurisdiction${jurisdictionKey(p.jurisdiction)}`)}
-									</p>
-									<Button size="sm" variant="outline" onClick={() => onEdit(p)}>
-										{t('profile.edit')}
-									</Button>
+									</ItemDescription>
+									{p.lastError ? (
+										<Alert variant="destructive" className="mt-2">
+											<AlertTitle>{t('profile.invalidTitle')}</AlertTitle>
+											<AlertDescription>{p.lastError}</AlertDescription>
+										</Alert>
+									) : null}
+								</ItemContent>
+								<ItemActions>
 									<Button
 										size="sm"
-										variant="outline"
-										disabled={probe.isPending}
-										onClick={() => probe.mutate(p.id)}
+										variant={profileId === p.id ? 'secondary' : 'outline'}
+										onClick={() => {
+											setProfileId(p.id);
+											setMainView('objects');
+										}}
 									>
-										{t('profile.probe')}
+										{t('profile.useAccount')}
 									</Button>
-									<Button size="sm" variant="destructive" onClick={() => setPendingDelete(p)}>
-										{t('profile.deleteAccount')}
-									</Button>
-								</CardContent>
-							</Card>
+									<DropdownMenu>
+										<DropdownMenuTrigger asChild>
+											<Button size="icon-sm" variant="ghost" aria-label={t('common.more')}>
+												<MoreHorizontal />
+											</Button>
+										</DropdownMenuTrigger>
+										<DropdownMenuContent align="end">
+											<DropdownMenuGroup>
+												<DropdownMenuItem onSelect={() => onEdit(p)}>
+													{t('profile.edit')}
+												</DropdownMenuItem>
+												<DropdownMenuItem
+													disabled={probe.isPending}
+													onSelect={() => probe.mutate(p.id)}
+												>
+													{probe.isPending ? <Spinner /> : null}
+													{t('profile.probe')}
+												</DropdownMenuItem>
+											</DropdownMenuGroup>
+											<DropdownMenuSeparator />
+											<DropdownMenuGroup>
+												<DropdownMenuItem
+													variant="destructive"
+													onSelect={() => setPendingDelete(p)}
+												>
+													{t('profile.deleteAccount')}
+												</DropdownMenuItem>
+											</DropdownMenuGroup>
+										</DropdownMenuContent>
+									</DropdownMenu>
+								</ItemActions>
+							</Item>
 						))}
-					</div>
+					</ItemGroup>
 				)}
 			</div>
-			<Dialog
+			<AlertDialog
 				open={pendingDelete !== null}
 				onOpenChange={(open) => !open && setPendingDelete(null)}
 			>
-				<DialogContent>
-					<DialogHeader>
-						<DialogTitle>{t('profile.deleteAccount')}</DialogTitle>
-						<DialogDescription>{t('profile.deleteConfirm')}</DialogDescription>
-					</DialogHeader>
-					<DialogFooter>
-						<Button variant="outline" onClick={() => setPendingDelete(null)}>
-							{t('common.cancel')}
-						</Button>
-						<Button
+				<AlertDialogContent>
+					<AlertDialogHeader>
+						<AlertDialogTitle>{t('profile.deleteAccount')}</AlertDialogTitle>
+						<AlertDialogDescription>{t('profile.deleteConfirm')}</AlertDialogDescription>
+					</AlertDialogHeader>
+					<AlertDialogFooter>
+						<AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+						<AlertDialogAction
 							variant="destructive"
 							disabled={!pendingDelete || remove.isPending}
 							onClick={() => pendingDelete && remove.mutate(pendingDelete.id)}
 						>
 							{t('common.delete')}
-						</Button>
-					</DialogFooter>
-				</DialogContent>
-			</Dialog>
+						</AlertDialogAction>
+					</AlertDialogFooter>
+				</AlertDialogContent>
+			</AlertDialog>
 		</div>
 	);
 }
@@ -172,18 +237,23 @@ export function InvalidAccountState({
 }) {
 	const { t } = useTranslation();
 	return (
-		<div className="flex h-full flex-col items-center justify-center gap-3 p-8 text-center">
-			<p className="text-base font-medium">{t('profile.invalidTitle')}</p>
-			<p className="max-w-sm text-sm text-muted-foreground">
-				{lastError || t('profile.invalidHint')}
-			</p>
-			<div className="flex gap-2">
-				<Button onClick={onEdit}>{t('profile.edit')}</Button>
-				<Button variant="outline" onClick={onManage}>
-					{t('profile.manage')}
-				</Button>
-			</div>
-		</div>
+		<Empty className="h-full border-0">
+			<EmptyHeader>
+				<EmptyMedia variant="icon">
+					<ShieldAlert />
+				</EmptyMedia>
+				<EmptyTitle>{t('profile.invalidTitle')}</EmptyTitle>
+				<EmptyDescription>{lastError || t('profile.invalidHint')}</EmptyDescription>
+			</EmptyHeader>
+			<EmptyContent>
+				<div className="flex gap-2">
+					<Button onClick={onEdit}>{t('profile.edit')}</Button>
+					<Button variant="outline" onClick={onManage}>
+						{t('profile.manage')}
+					</Button>
+				</div>
+			</EmptyContent>
+		</Empty>
 	);
 }
 

@@ -1,8 +1,24 @@
 import { useQuery } from '@tanstack/react-query';
-import { X } from 'lucide-react';
+import { ArrowDownToLine, ArrowUpFromLine, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import {
+	Empty,
+	EmptyDescription,
+	EmptyHeader,
+	EmptyMedia,
+	EmptyTitle,
+} from '@/components/ui/empty';
+import {
+	Item,
+	ItemActions,
+	ItemContent,
+	ItemDescription,
+	ItemGroup,
+	ItemMedia,
+	ItemTitle,
+} from '@/components/ui/item';
 import { Progress } from '@/components/ui/progress';
 import { api } from '@/shared/api/backend';
 import { queryKeys } from '@/shared/config/query-keys';
@@ -43,11 +59,21 @@ export function QueuePanel() {
 				}));
 
 	if (merged.length === 0) {
-		return <p className="px-4 pb-4 text-sm text-muted-foreground">{t('transfer.idle')}</p>;
+		return (
+			<Empty className="border-0">
+				<EmptyHeader>
+					<EmptyMedia variant="icon">
+						<ArrowUpFromLine />
+					</EmptyMedia>
+					<EmptyTitle>{t('transfer.emptyTitle')}</EmptyTitle>
+					<EmptyDescription>{t('transfer.emptyBody')}</EmptyDescription>
+				</EmptyHeader>
+			</Empty>
+		);
 	}
 
 	return (
-		<ul className="space-y-3 px-4 pb-4">
+		<ItemGroup className="gap-2 px-4 pb-4">
 			{merged.map((item) => {
 				const pct = item.bytesTotal > 0 ? (item.bytesDone / item.bytesTotal) * 100 : 0;
 				const variant =
@@ -58,10 +84,23 @@ export function QueuePanel() {
 							: 'default';
 				const direction =
 					'direction' in item && item.direction ? t(`transfer.${item.direction}`) : null;
+				const Icon =
+					'direction' in item && item.direction === 'download' ? ArrowDownToLine : ArrowUpFromLine;
 				return (
-					<li key={item.id} className="space-y-1.5 rounded-lg border p-3">
-						<div className="flex items-center gap-2">
-							<span className="min-w-0 flex-1 truncate text-sm font-medium">{item.key}</span>
+					<Item key={item.id} variant="outline" size="sm">
+						<ItemMedia variant="icon">
+							<Icon />
+						</ItemMedia>
+						<ItemContent>
+							<ItemTitle className="max-w-full">
+								<span className="truncate">{item.key}</span>
+							</ItemTitle>
+							<ItemDescription>
+								{formatBytes(item.bytesDone)} / {formatBytes(item.bytesTotal)}
+							</ItemDescription>
+							<Progress value={pct} className="mt-1" />
+						</ItemContent>
+						<ItemActions>
 							{direction ? <Badge variant="outline">{direction}</Badge> : null}
 							<Badge variant={variant}>{t(`transfer.status.${item.status}`)}</Badge>
 							<Button
@@ -72,15 +111,11 @@ export function QueuePanel() {
 							>
 								<X />
 							</Button>
-						</div>
-						<Progress value={pct} />
-						<p className="text-xs text-muted-foreground">
-							{formatBytes(item.bytesDone)} / {formatBytes(item.bytesTotal)}
-						</p>
-					</li>
+						</ItemActions>
+					</Item>
 				);
 			})}
-		</ul>
+		</ItemGroup>
 	);
 }
 

@@ -1,4 +1,14 @@
 import { useQuery } from '@tanstack/react-query';
+import {
+	FolderOpen,
+	HardDrive,
+	Languages,
+	Moon,
+	Plus,
+	SlidersHorizontal,
+	Sun,
+	Users,
+} from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import {
 	CommandDialog,
@@ -15,15 +25,18 @@ import { useNavStore } from '@/store/nav';
 export function CommandPalette({
 	open,
 	onOpenChange,
+	onTransfers,
 }: {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
+	onTransfers?: () => void;
 }) {
 	const { t, i18n } = useTranslation();
 	const profileId = useNavStore((s) => s.profileId);
 	const go = useNavStore((s) => s.go);
 	const newTab = useNavStore((s) => s.newTab);
 	const setTheme = useNavStore((s) => s.setTheme);
+	const setMainView = useNavStore((s) => s.setMainView);
 	const { data: buckets = [] } = useQuery({
 		queryKey: queryKeys.buckets(profileId ?? ''),
 		queryFn: () => api.listBuckets(profileId ?? ''),
@@ -47,14 +60,55 @@ export function CommandPalette({
 							value={b.name}
 							onSelect={() => {
 								go({ bucket: b.name, prefix: '' });
+								setMainView('objects');
 								onOpenChange(false);
 							}}
 						>
+							<HardDrive />
 							{b.name}
 						</CommandItem>
 					))}
 				</CommandGroup>
 				<CommandGroup heading={t('nav.settings')}>
+					<CommandItem
+						value="objects"
+						onSelect={() => {
+							setMainView('objects');
+							onOpenChange(false);
+						}}
+					>
+						<FolderOpen />
+						{t('command.objects')}
+					</CommandItem>
+					<CommandItem
+						value="settings"
+						onSelect={() => {
+							setMainView('settings');
+							onOpenChange(false);
+						}}
+					>
+						<SlidersHorizontal />
+						{t('command.settings')}
+					</CommandItem>
+					<CommandItem
+						value="accounts"
+						onSelect={() => {
+							setMainView('accounts');
+							onOpenChange(false);
+						}}
+					>
+						<Users />
+						{t('command.accounts')}
+					</CommandItem>
+					<CommandItem
+						value="transfers"
+						onSelect={() => {
+							onTransfers?.();
+							onOpenChange(false);
+						}}
+					>
+						{t('command.transfers')}
+					</CommandItem>
 					<CommandItem
 						value="new-tab"
 						onSelect={() => {
@@ -62,6 +116,7 @@ export function CommandPalette({
 							onOpenChange(false);
 						}}
 					>
+						<Plus />
 						{t('command.newTab')}
 					</CommandItem>
 					<CommandItem
@@ -71,6 +126,7 @@ export function CommandPalette({
 							onOpenChange(false);
 						}}
 					>
+						<Moon />
 						{t('command.themeDark')}
 					</CommandItem>
 					<CommandItem
@@ -80,7 +136,17 @@ export function CommandPalette({
 							onOpenChange(false);
 						}}
 					>
+						<Sun />
 						{t('command.themeLight')}
+					</CommandItem>
+					<CommandItem
+						value="system"
+						onSelect={() => {
+							setTheme('system');
+							onOpenChange(false);
+						}}
+					>
+						{t('command.themeSystem')}
 					</CommandItem>
 					<CommandItem
 						value="language"
@@ -89,6 +155,7 @@ export function CommandPalette({
 							onOpenChange(false);
 						}}
 					>
+						<Languages />
 						{t('command.language')}
 					</CommandItem>
 				</CommandGroup>
