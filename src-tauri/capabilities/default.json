@@ -1,0 +1,13 @@
+{
+	"$schema": "../gen/schemas/desktop-schema.json",
+	"identifier": "default",
+	"description": "Main window capability. File I/O stays in Rust; frontend has no fs scope.",
+	"windows": ["main"],
+	"permissions": [
+		"core:default",
+		"dialog:default",
+		"store:default",
+		"opener:default",
+		"log:default"
+	]
+}
