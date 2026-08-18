@@ -3,6 +3,7 @@ import {
 	FolderOpen,
 	HardDrive,
 	Languages,
+	Monitor,
 	Moon,
 	Plus,
 	SlidersHorizontal,
@@ -146,6 +147,7 @@ export function CommandPalette({
 							onOpenChange(false);
 						}}
 					>
+						<Monitor />
 						{t('command.themeSystem')}
 					</CommandItem>
 					<CommandItem

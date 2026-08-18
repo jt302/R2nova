@@ -115,6 +115,7 @@
 		"title": "Command palette",
 		"placeholder": "Search commands or buckets…",
 		"newTab": "New tab",
+		"theme": "Theme",
 		"themeDark": "Dark theme",
 		"themeLight": "Light theme",
 		"themeSystem": "System theme",

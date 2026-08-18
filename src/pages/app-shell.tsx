@@ -5,6 +5,7 @@ import {
 	Cloud,
 	FolderOpen,
 	Languages,
+	Monitor,
 	Moon,
 	Search,
 	Sun,
@@ -13,6 +14,13 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuRadioGroup,
+	DropdownMenuRadioItem,
+	DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import {
 	Empty,
 	EmptyContent,
@@ -147,11 +155,12 @@ export function AppShell() {
 
 	const update =
 		latest && version && latest !== version ? t('app.updateAvailable', { version: latest }) : null;
-	const dark =
-		theme === 'dark' ||
-		(theme === 'system' &&
-			typeof window !== 'undefined' &&
-			window.matchMedia('(prefers-color-scheme: dark)').matches);
+	const themeLabel =
+		theme === 'dark'
+			? t('command.themeDark')
+			: theme === 'light'
+				? t('command.themeLight')
+				: t('command.themeSystem');
 
 	function openAdd() {
 		setEditing(null);
@@ -221,19 +230,34 @@ export function AppShell() {
 					</TooltipTrigger>
 					<TooltipContent>{t('command.language')}</TooltipContent>
 				</Tooltip>
-				<Tooltip>
-					<TooltipTrigger asChild>
-						<Button
-							variant="ghost"
-							size="icon-sm"
-							aria-label={dark ? t('command.themeLight') : t('command.themeDark')}
-							onClick={() => setTheme(dark ? 'light' : 'dark')}
+				<DropdownMenu>
+					<Tooltip>
+						<TooltipTrigger asChild>
+							<DropdownMenuTrigger asChild>
+								<Button variant="ghost" size="icon-sm" aria-label={t('command.theme')}>
+									{theme === 'system' ? <Monitor /> : theme === 'dark' ? <Moon /> : <Sun />}
+								</Button>
+							</DropdownMenuTrigger>
+						</TooltipTrigger>
+						<TooltipContent>{themeLabel}</TooltipContent>
+					</Tooltip>
+					<DropdownMenuContent align="end">
+						<DropdownMenuRadioGroup
+							value={theme}
+							onValueChange={(value) => {
+								if (value === 'light' || value === 'dark' || value === 'system') {
+									setTheme(value);
+								}
+							}}
 						>
-							{dark ? <Sun /> : <Moon />}
-						</Button>
-					</TooltipTrigger>
-					<TooltipContent>{dark ? t('command.themeLight') : t('command.themeDark')}</TooltipContent>
-				</Tooltip>
+							<DropdownMenuRadioItem value="light">{t('command.themeLight')}</DropdownMenuRadioItem>
+							<DropdownMenuRadioItem value="dark">{t('command.themeDark')}</DropdownMenuRadioItem>
+							<DropdownMenuRadioItem value="system">
+								{t('command.themeSystem')}
+							</DropdownMenuRadioItem>
+						</DropdownMenuRadioGroup>
+					</DropdownMenuContent>
+				</DropdownMenu>
 				{version ? (
 					<span className="pr-1 text-xs tabular-nums text-muted-foreground">v{version}</span>
 				) : null}
