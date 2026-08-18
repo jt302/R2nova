@@ -92,8 +92,10 @@ export function QueuePanel() {
 							<Icon />
 						</ItemMedia>
 						<ItemContent>
-							<ItemTitle className="max-w-full">
-								<span className="truncate">{item.key}</span>
+							<ItemTitle className="min-w-0 max-w-full">
+								<span className="truncate" title={item.key}>
+									{item.key}
+								</span>
 							</ItemTitle>
 							<ItemDescription>
 								{formatBytes(item.bytesDone)} / {formatBytes(item.bytesTotal)}

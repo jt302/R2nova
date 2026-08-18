@@ -247,7 +247,7 @@ export function BrowserPage({ onPreview }: { onPreview: (key: string) => void })
 
 	return (
 		<div className="flex h-full min-h-0 flex-col">
-			<div className="flex h-11 shrink-0 items-center gap-2 border-b bg-card px-3">
+			<div className="flex h-11 shrink-0 items-center gap-2 overflow-hidden border-b bg-card px-3">
 				<div className="flex items-center gap-1">
 					<Tooltip>
 						<TooltipTrigger asChild>
@@ -279,10 +279,14 @@ export function BrowserPage({ onPreview }: { onPreview: (key: string) => void })
 					</Tooltip>
 				</div>
 				<Separator orientation="vertical" className="h-5" />
-				<Breadcrumb className="min-w-0 flex-1">
-					<BreadcrumbList className="flex-nowrap overflow-hidden">
-						<BreadcrumbItem>
-							<BreadcrumbLink className="cursor-pointer" onClick={() => go({ bucket, prefix: '' })}>
+				<Breadcrumb className="min-w-0 flex-1 overflow-hidden">
+					<BreadcrumbList className="flex-nowrap gap-1 overflow-hidden whitespace-nowrap break-normal">
+						<BreadcrumbItem className="min-w-0 max-w-36">
+							<BreadcrumbLink
+								className="block cursor-pointer truncate"
+								title={bucket}
+								onClick={() => go({ bucket, prefix: '' })}
+							>
 								{bucket}
 							</BreadcrumbLink>
 						</BreadcrumbItem>
@@ -291,12 +295,15 @@ export function BrowserPage({ onPreview }: { onPreview: (key: string) => void })
 								<BreadcrumbSeparator>
 									<ChevronRight />
 								</BreadcrumbSeparator>
-								<BreadcrumbItem>
+								<BreadcrumbItem className="min-w-0 max-w-36">
 									{i === crumbs.length - 1 ? (
-										<BreadcrumbPage className="truncate">{c.label}</BreadcrumbPage>
+										<BreadcrumbPage className="block truncate" title={c.label}>
+											{c.label}
+										</BreadcrumbPage>
 									) : (
 										<BreadcrumbLink
-											className="cursor-pointer truncate"
+											className="block cursor-pointer truncate"
+											title={c.label}
 											onClick={() => go({ bucket, prefix: c.prefix })}
 										>
 											{c.label}
@@ -307,7 +314,7 @@ export function BrowserPage({ onPreview }: { onPreview: (key: string) => void })
 						))}
 					</BreadcrumbList>
 				</Breadcrumb>
-				<InputGroup className="h-8 w-52">
+				<InputGroup className="h-8 w-44 shrink-0">
 					<InputGroupAddon>
 						<Search />
 					</InputGroupAddon>

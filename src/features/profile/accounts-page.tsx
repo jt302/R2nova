@@ -139,8 +139,10 @@ export function AccountsPage({
 									<AvatarFallback>{profileInitials(p.name)}</AvatarFallback>
 								</Avatar>
 								<ItemContent>
-									<ItemTitle>
-										{p.name}
+									<ItemTitle className="min-w-0 max-w-full">
+										<span className="truncate" title={p.name}>
+											{p.name}
+										</span>
 										<CapabilityBadge capability={p.capability} />
 									</ItemTitle>
 									<ItemDescription>

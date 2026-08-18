@@ -76,10 +76,12 @@ export function PreviewPane({ objectKey, onClose }: { objectKey: string; onClose
 	}, [preview.data, kind, src, objectKey]);
 
 	return (
-		<div className="flex h-full min-h-0 flex-col bg-card">
+		<div className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden bg-card">
 			<div className="flex h-12 shrink-0 items-center gap-2 border-b px-3">
 				<div className="min-w-0 flex-1">
-					<p className="truncate text-sm font-medium">{name}</p>
+					<p className="truncate text-sm font-medium" title={name}>
+						{name}
+					</p>
 					<div className="mt-0.5 flex items-center gap-2">
 						<Badge variant="secondary">{kind}</Badge>
 						{detail.data ? (

@@ -263,7 +263,11 @@ export function AppShell() {
 									<ResizableHandle />
 								</>
 							) : null}
-							<ResizablePanel defaultSize={showPreview ? '52' : '80'} minSize="30">
+							<ResizablePanel
+								defaultSize={showPreview ? '52' : '80'}
+								minSize="30"
+								className="min-w-0 overflow-hidden"
+							>
 								{mainView === 'settings' ? (
 									<ControlPanel />
 								) : currentProfile?.capability === 'invalid' ? (
@@ -279,7 +283,12 @@ export function AppShell() {
 							{showPreview ? (
 								<>
 									<ResizableHandle />
-									<ResizablePanel defaultSize="28" minSize="18" maxSize="45">
+									<ResizablePanel
+										defaultSize="28"
+										minSize="18"
+										maxSize="45"
+										className="min-w-0 overflow-hidden"
+									>
 										<PreviewPane objectKey={previewKey!} onClose={() => setPreviewKey(null)} />
 									</ResizablePanel>
 								</>

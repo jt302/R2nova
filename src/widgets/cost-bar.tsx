@@ -15,7 +15,7 @@ export function CostBar() {
 	const estimated = data?.estimatedUsd ?? 0;
 
 	return (
-		<div className="flex min-w-0 flex-wrap items-center gap-2 text-xs">
+		<div className="flex min-w-0 items-center gap-2 overflow-hidden text-xs">
 			<span className="text-muted-foreground">{t('cost.session')}</span>
 			<Badge variant="outline">
 				{t('cost.classA')} {data?.classA ?? 0}
