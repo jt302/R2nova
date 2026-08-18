@@ -1,0 +1,99 @@
+import { useQuery } from '@tanstack/react-query';
+import { X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
+import { api } from '@/shared/api/backend';
+import { queryKeys } from '@/shared/config/query-keys';
+import { formatBytes } from '@/shared/lib/object-key';
+import { useTransferStore } from '@/store/transfer';
+
+export function QueuePanel() {
+	const { t } = useTranslation();
+	const live = useTransferStore((s) => s.items);
+	const { data = [] } = useQuery({
+		queryKey: queryKeys.transfers,
+		queryFn: api.listTransfers,
+		refetchInterval: 2000,
+	});
+	const items = Object.values(live);
+	const merged =
+		items.length > 0
+			? items
+			: data.map((d) => ({
+					id: d.transferId,
+					key: d.key,
+					bytesDone: d.bytesDone,
+					bytesTotal: d.bytesTotal,
+					status:
+						d.status === 'completed'
+							? 'finished'
+							: d.status === 'failed'
+								? 'failed'
+								: d.status === 'cancelled'
+									? 'cancelled'
+									: d.status === 'paused'
+										? 'paused'
+										: d.status === 'queued'
+											? 'queued'
+											: 'running',
+					message: d.error ?? undefined,
+					direction: d.direction,
+				}));
+
+	if (merged.length === 0) {
+		return <p className="px-4 pb-4 text-sm text-muted-foreground">{t('transfer.idle')}</p>;
+	}
+
+	return (
+		<ul className="space-y-3 px-4 pb-4">
+			{merged.map((item) => {
+				const pct = item.bytesTotal > 0 ? (item.bytesDone / item.bytesTotal) * 100 : 0;
+				const variant =
+					item.status === 'failed'
+						? 'destructive'
+						: item.status === 'finished' || item.status === 'completed'
+							? 'secondary'
+							: 'default';
+				const direction =
+					'direction' in item && item.direction ? t(`transfer.${item.direction}`) : null;
+				return (
+					<li key={item.id} className="space-y-1.5 rounded-lg border p-3">
+						<div className="flex items-center gap-2">
+							<span className="min-w-0 flex-1 truncate text-sm font-medium">{item.key}</span>
+							{direction ? <Badge variant="outline">{direction}</Badge> : null}
+							<Badge variant={variant}>{t(`transfer.status.${item.status}`)}</Badge>
+							<Button
+								variant="ghost"
+								size="icon-xs"
+								aria-label={t('common.cancel')}
+								onClick={() => void api.cancelTransfer(item.id)}
+							>
+								<X />
+							</Button>
+						</div>
+						<Progress value={pct} />
+						<p className="text-xs text-muted-foreground">
+							{formatBytes(item.bytesDone)} / {formatBytes(item.bytesTotal)}
+						</p>
+					</li>
+				);
+			})}
+		</ul>
+	);
+}
+
+export function useActiveTransferCount() {
+	const live = useTransferStore((s) => s.items);
+	const { data = [] } = useQuery({
+		queryKey: queryKeys.transfers,
+		queryFn: api.listTransfers,
+		refetchInterval: 2000,
+	});
+	const liveCount = Object.values(live).filter((item) => item.status === 'running').length;
+	if (liveCount > 0) {
+		return liveCount;
+	}
+	return data.filter((d) => d.status === 'running' || d.status === 'queued').length;
+}

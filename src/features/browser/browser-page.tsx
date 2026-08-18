@@ -1,0 +1,440 @@
+import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { open, save } from '@tauri-apps/plugin-dialog';
+import { ChevronRight, Download, RefreshCw, Upload } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { toast } from 'sonner';
+import {
+	Breadcrumb,
+	BreadcrumbItem,
+	BreadcrumbLink,
+	BreadcrumbList,
+	BreadcrumbPage,
+	BreadcrumbSeparator,
+} from '@/components/ui/breadcrumb';
+import { Button } from '@/components/ui/button';
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogFooter,
+	DialogHeader,
+	DialogTitle,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import type { ObjectItem } from '@/entities/profile/types';
+import { ObjectTable } from '@/features/browser/object-table';
+import { api } from '@/shared/api/backend';
+import { isAppError } from '@/shared/api/tauri-invoke';
+import { queryKeys } from '@/shared/config/query-keys';
+import { joinKey, parentPrefix } from '@/shared/lib/object-key';
+import {
+	clearSelection,
+	emptySelection,
+	type Selection,
+	selectedKeys,
+} from '@/shared/lib/selection';
+import { createTransferChannel } from '@/shared/lib/transfer-channel';
+import { useNavStore } from '@/store/nav';
+
+type ConfirmKind = 'delete' | 'loadMore' | null;
+
+export function BrowserPage({ onPreview }: { onPreview: (key: string) => void }) {
+	const { t } = useTranslation();
+	const qc = useQueryClient();
+	const profileId = useNavStore((s) => s.profileId);
+	const tabs = useNavStore((s) => s.tabs);
+	const activeTabId = useNavStore((s) => s.activeTabId);
+	const go = useNavStore((s) => s.go);
+	const tab = tabs.find((item) => item.id === activeTabId) ?? tabs[0];
+	const loc = tab.stack[tab.index];
+	const bucket = loc.bucket;
+	const prefix = loc.prefix;
+	const [filter, setFilter] = useState('');
+	const [selection, setSelection] = useState<Selection>(emptySelection());
+	const [renameSrc, setRenameSrc] = useState('');
+	const [renameOpen, setRenameOpen] = useState(false);
+	const [renameTo, setRenameTo] = useState('');
+	const [copyOpen, setCopyOpen] = useState(false);
+	const [copyDest, setCopyDest] = useState('');
+	const [moveOpen, setMoveOpen] = useState(false);
+	const [movePrefix, setMovePrefix] = useState('');
+	const [confirm, setConfirm] = useState<ConfirmKind>(null);
+	const [loadQuote, setLoadQuote] = useState(0);
+
+	// biome-ignore lint/correctness/useExhaustiveDependencies: folder change must reset selection
+	useEffect(() => {
+		setSelection(clearSelection());
+		setFilter('');
+	}, [bucket, prefix]);
+
+	useEffect(() => {
+		let unlisten: (() => void) | undefined;
+		void (async () => {
+			const { getCurrentWebview } = await import('@tauri-apps/api/webview');
+			unlisten = await getCurrentWebview().onDragDropEvent((event) => {
+				if (event.payload.type !== 'drop' || !profileId || !bucket) {
+					return;
+				}
+				void api
+					.uploadPaths({
+						profileId,
+						bucket,
+						prefix,
+						paths: event.payload.paths,
+						onEvent: createTransferChannel(),
+					})
+					.then(() => toast.success(t('common.upload')))
+					.catch((err) => toast.error(isAppError(err) ? err.message : String(err)));
+			});
+		})();
+		return () => unlisten?.();
+	}, [profileId, bucket, prefix, t]);
+
+	const objects = useInfiniteQuery({
+		queryKey: queryKeys.objects(profileId ?? '', bucket, prefix),
+		enabled: Boolean(profileId && bucket),
+		initialPageParam: null as string | null,
+		queryFn: ({ pageParam }) =>
+			api.listObjects({
+				profileId: profileId ?? '',
+				bucket,
+				prefix,
+				continuationToken: pageParam,
+			}),
+		getNextPageParam: (last) =>
+			last.isTruncated ? (last.nextContinuationToken ?? undefined) : undefined,
+	});
+
+	const rows = useMemo(() => {
+		const all = (objects.data?.pages ?? []).flatMap((p) => [...p.prefixes, ...p.objects]);
+		if (!filter) {
+			return all;
+		}
+		const q = filter.toLowerCase();
+		return all.filter((r) => r.name.toLowerCase().includes(q) || r.key.toLowerCase().includes(q));
+	}, [objects.data, filter]);
+
+	const keys = rows.map((r) => r.key);
+	const selected = selectedKeys(selection, keys);
+	const hasNextPage = Boolean(objects.hasNextPage);
+
+	const invalidate = () => {
+		void qc.invalidateQueries({ queryKey: queryKeys.objects(profileId ?? '', bucket, prefix) });
+		void qc.invalidateQueries({ queryKey: queryKeys.cost });
+	};
+
+	const del = useMutation({
+		mutationFn: () => api.deleteObjects({ profileId: profileId ?? '', bucket, keys: selected }),
+		onSuccess: (n) => {
+			toast.success(`${t('common.delete')} ${n}`);
+			invalidate();
+			setSelection(clearSelection());
+			setConfirm(null);
+		},
+		onError: (err) => toast.error(isAppError(err) ? err.message : String(err)),
+	});
+
+	function openRow(row: ObjectItem) {
+		if (row.isPrefix) {
+			go({ bucket, prefix: row.key });
+			return;
+		}
+		onPreview(row.key);
+	}
+
+	async function upload() {
+		if (!profileId || !bucket) {
+			return;
+		}
+		const picked = await open({ multiple: true, directory: false });
+		const paths = Array.isArray(picked) ? picked : picked ? [picked] : [];
+		if (paths.length === 0) {
+			return;
+		}
+		await api.uploadPaths({
+			profileId,
+			bucket,
+			prefix,
+			paths,
+			onEvent: createTransferChannel(),
+		});
+		invalidate();
+	}
+
+	async function downloadOne(key: string) {
+		if (!profileId || !bucket) {
+			return;
+		}
+		const dest = await save({ defaultPath: key.split('/').pop() });
+		if (!dest) {
+			return;
+		}
+		await api.downloadObject({
+			profileId,
+			bucket,
+			key,
+			dest,
+			onEvent: createTransferChannel(),
+		});
+	}
+
+	async function requestLoadMore() {
+		const quote = await api.quoteListAll(rows.length + 1000);
+		setLoadQuote(quote.classA);
+		setConfirm('loadMore');
+	}
+
+	async function loadMore() {
+		await objects.fetchNextPage();
+		setConfirm(null);
+	}
+
+	const crumbs = prefix
+		.split('/')
+		.filter(Boolean)
+		.map((part, i, arr) => ({
+			label: part,
+			prefix: `${arr.slice(0, i + 1).join('/')}/`,
+		}));
+
+	if (!bucket) {
+		return (
+			<div className="flex h-full flex-col items-center justify-center gap-2 p-8 text-center">
+				<p className="text-base font-medium">{t('browser.selectBucket')}</p>
+				<p className="max-w-sm text-sm text-muted-foreground">{t('browser.selectBucketBody')}</p>
+			</div>
+		);
+	}
+
+	return (
+		<div className="flex h-full min-h-0 flex-col">
+			<div className="flex h-12 shrink-0 items-center gap-2 border-b bg-card px-3">
+				<Breadcrumb className="min-w-0 flex-1">
+					<BreadcrumbList className="flex-nowrap overflow-hidden">
+						<BreadcrumbItem>
+							<BreadcrumbLink
+								className="cursor-pointer"
+								onClick={() => go({ bucket, prefix: parentPrefix(prefix) })}
+							>
+								{bucket}
+							</BreadcrumbLink>
+						</BreadcrumbItem>
+						{crumbs.map((c, i) => (
+							<span key={c.prefix} className="contents">
+								<BreadcrumbSeparator>
+									<ChevronRight />
+								</BreadcrumbSeparator>
+								<BreadcrumbItem>
+									{i === crumbs.length - 1 ? (
+										<BreadcrumbPage className="truncate">{c.label}</BreadcrumbPage>
+									) : (
+										<BreadcrumbLink
+											className="cursor-pointer truncate"
+											onClick={() => go({ bucket, prefix: c.prefix })}
+										>
+											{c.label}
+										</BreadcrumbLink>
+									)}
+								</BreadcrumbItem>
+							</span>
+						))}
+					</BreadcrumbList>
+				</Breadcrumb>
+				<Input
+					className="h-8 w-44"
+					placeholder={t('browser.prefixPlaceholder')}
+					value={filter}
+					onChange={(e) => setFilter(e.target.value)}
+				/>
+				<Button variant="outline" size="sm" onClick={() => void objects.refetch()}>
+					<RefreshCw />
+					{t('common.refresh')}
+				</Button>
+				<Button size="sm" onClick={() => void upload()}>
+					<Upload />
+					{t('common.upload')}
+				</Button>
+				<Button
+					variant="outline"
+					size="sm"
+					disabled={selected.length === 0}
+					onClick={() => {
+						const key = selected[0];
+						if (key) {
+							void downloadOne(key);
+						}
+					}}
+				>
+					<Download />
+					{t('common.download')}
+				</Button>
+			</div>
+			<div className="min-h-0 flex-1">
+				<ObjectTable
+					rows={rows}
+					hasNextPage={hasNextPage}
+					selection={selection}
+					onSelectionChange={setSelection}
+					onOpen={openRow}
+					onPreview={(row) => onPreview(row.key)}
+					onDownload={(row) => void downloadOne(row.key)}
+					onRename={(row) => {
+						setRenameSrc(row?.key ?? selected[0] ?? '');
+						setRenameTo(row?.name ?? '');
+						setRenameOpen(true);
+					}}
+					onCopy={(row) => {
+						setCopyDest(joinKey(prefix, row?.name ?? ''));
+						setCopyOpen(true);
+					}}
+					onMove={() => {
+						setMovePrefix(prefix);
+						setMoveOpen(true);
+					}}
+					onDelete={() => setConfirm('delete')}
+				/>
+			</div>
+			<div className="flex h-9 shrink-0 items-center gap-3 border-t px-3 text-xs text-muted-foreground">
+				<span>{t('common.selected', { count: selected.length })}</span>
+				{hasNextPage ? (
+					<Button variant="ghost" size="xs" onClick={() => void requestLoadMore()}>
+						{t('browser.loadMore')}
+					</Button>
+				) : null}
+			</div>
+			<Dialog open={renameOpen} onOpenChange={setRenameOpen}>
+				<DialogContent>
+					<DialogHeader>
+						<DialogTitle>{t('common.rename')}</DialogTitle>
+						<DialogDescription className="sr-only">{t('common.rename')}</DialogDescription>
+					</DialogHeader>
+					<Input value={renameTo} onChange={(e) => setRenameTo(e.target.value)} />
+					<DialogFooter>
+						<Button variant="outline" onClick={() => setRenameOpen(false)}>
+							{t('common.cancel')}
+						</Button>
+						<Button
+							onClick={async () => {
+								const src = renameSrc || selected[0];
+								if (!src || !profileId) {
+									return;
+								}
+								await api.renameObject({
+									profileId,
+									bucket,
+									srcKey: src,
+									dstKey: joinKey(prefix, renameTo),
+								});
+								setRenameOpen(false);
+								invalidate();
+							}}
+						>
+							{t('common.save')}
+						</Button>
+					</DialogFooter>
+				</DialogContent>
+			</Dialog>
+			<Dialog open={copyOpen} onOpenChange={setCopyOpen}>
+				<DialogContent>
+					<DialogHeader>
+						<DialogTitle>{t('common.copy')}</DialogTitle>
+						<DialogDescription>{t('browser.copyDest')}</DialogDescription>
+					</DialogHeader>
+					<Input
+						value={copyDest}
+						onChange={(e) => setCopyDest(e.target.value)}
+						placeholder={t('browser.copyDest')}
+					/>
+					<DialogFooter>
+						<Button variant="outline" onClick={() => setCopyOpen(false)}>
+							{t('common.cancel')}
+						</Button>
+						<Button
+							onClick={async () => {
+								const src = selected[0];
+								if (!src || !profileId) {
+									return;
+								}
+								const slash = copyDest.indexOf('/');
+								const dstBucket = slash === -1 ? bucket : copyDest.slice(0, slash);
+								const dstKey = slash === -1 ? copyDest : copyDest.slice(slash + 1);
+								await api.copyObject({
+									profileId,
+									srcBucket: bucket,
+									srcKey: src,
+									dstBucket,
+									dstKey,
+								});
+								setCopyOpen(false);
+								invalidate();
+							}}
+						>
+							{t('common.save')}
+						</Button>
+					</DialogFooter>
+				</DialogContent>
+			</Dialog>
+			<Dialog open={moveOpen} onOpenChange={setMoveOpen}>
+				<DialogContent>
+					<DialogHeader>
+						<DialogTitle>{t('common.move')}</DialogTitle>
+						<DialogDescription>{t('browser.movePrefix')}</DialogDescription>
+					</DialogHeader>
+					<Input value={movePrefix} onChange={(e) => setMovePrefix(e.target.value)} />
+					<DialogFooter>
+						<Button variant="outline" onClick={() => setMoveOpen(false)}>
+							{t('common.cancel')}
+						</Button>
+						<Button
+							onClick={async () => {
+								if (!profileId) {
+									return;
+								}
+								await api.moveObjects({
+									profileId,
+									bucket,
+									keys: selected,
+									dstPrefix: movePrefix,
+								});
+								setMoveOpen(false);
+								invalidate();
+							}}
+						>
+							{t('common.save')}
+						</Button>
+					</DialogFooter>
+				</DialogContent>
+			</Dialog>
+			<Dialog open={confirm !== null} onOpenChange={(open) => !open && setConfirm(null)}>
+				<DialogContent>
+					<DialogHeader>
+						<DialogTitle>{t('common.confirm')}</DialogTitle>
+						<DialogDescription>
+							{confirm === 'delete'
+								? t('common.confirmDelete')
+								: t('cost.quote', { count: loadQuote })}
+						</DialogDescription>
+					</DialogHeader>
+					<DialogFooter>
+						<Button variant="outline" onClick={() => setConfirm(null)}>
+							{t('common.cancel')}
+						</Button>
+						<Button
+							variant={confirm === 'delete' ? 'destructive' : 'default'}
+							onClick={() => {
+								if (confirm === 'delete') {
+									del.mutate();
+									return;
+								}
+								void loadMore();
+							}}
+						>
+							{t('common.confirm')}
+						</Button>
+					</DialogFooter>
+				</DialogContent>
+			</Dialog>
+		</div>
+	);
+}
