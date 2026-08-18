@@ -279,10 +279,11 @@ export function AppShell() {
 							{showSidebar ? (
 								<>
 									<ResizablePanel
-										defaultSize="20"
-										minSize="14"
-										maxSize="32"
-										className="min-w-[220px]"
+										defaultSize="260px"
+										minSize="240px"
+										maxSize="420px"
+										groupResizeBehavior="preserve-pixel-size"
+										className="overflow-hidden"
 									>
 										<BucketSidebar onAdd={openAdd} onManage={() => setMainView('accounts')} />
 									</ResizablePanel>
