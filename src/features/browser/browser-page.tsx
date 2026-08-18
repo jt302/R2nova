@@ -344,46 +344,6 @@ export function BrowserPage({ onPreview }: { onPreview: (key: string) => void })
 					{t('common.download')}
 				</Button>
 			</div>
-			{selected.length > 0 ? (
-				<div className="flex h-10 shrink-0 items-center gap-2 border-b bg-muted/30 px-3">
-					<span className="text-sm">{t('common.selected', { count: selected.length })}</span>
-					<div className="flex-1" />
-					<Button
-						size="xs"
-						variant="outline"
-						onClick={() => {
-							setRenameSrc(selected[0] ?? '');
-							setRenameTo(selected[0]?.split('/').pop() ?? '');
-							setRenameOpen(true);
-						}}
-					>
-						{t('common.rename')}
-					</Button>
-					<Button
-						size="xs"
-						variant="outline"
-						onClick={() => {
-							setCopyDest(joinKey(prefix, selected[0]?.split('/').pop() ?? ''));
-							setCopyOpen(true);
-						}}
-					>
-						{t('common.copy')}
-					</Button>
-					<Button
-						size="xs"
-						variant="outline"
-						onClick={() => {
-							setMovePrefix(prefix);
-							setMoveOpen(true);
-						}}
-					>
-						{t('common.move')}
-					</Button>
-					<Button size="xs" variant="destructive" onClick={() => setConfirm('delete')}>
-						{t('common.delete')}
-					</Button>
-				</div>
-			) : null}
 			<div className="min-h-0 flex-1">
 				<ObjectTable
 					rows={rows}
@@ -409,9 +369,47 @@ export function BrowserPage({ onPreview }: { onPreview: (key: string) => void })
 					onDelete={() => setConfirm('delete')}
 				/>
 			</div>
-			<div className="flex min-h-9 shrink-0 items-center gap-3 border-t px-3 py-1.5 text-xs text-muted-foreground">
+			<div className="flex h-9 shrink-0 items-center gap-3 border-t px-3 text-xs text-muted-foreground">
 				<span>{t('browser.items', { count: rows.length })}</span>
 				<span>{t('common.selected', { count: selected.length })}</span>
+				{selected.length > 0 ? (
+					<div className="flex items-center gap-1">
+						<Button
+							size="xs"
+							variant="outline"
+							onClick={() => {
+								setRenameSrc(selected[0] ?? '');
+								setRenameTo(selected[0]?.split('/').pop() ?? '');
+								setRenameOpen(true);
+							}}
+						>
+							{t('common.rename')}
+						</Button>
+						<Button
+							size="xs"
+							variant="outline"
+							onClick={() => {
+								setCopyDest(joinKey(prefix, selected[0]?.split('/').pop() ?? ''));
+								setCopyOpen(true);
+							}}
+						>
+							{t('common.copy')}
+						</Button>
+						<Button
+							size="xs"
+							variant="outline"
+							onClick={() => {
+								setMovePrefix(prefix);
+								setMoveOpen(true);
+							}}
+						>
+							{t('common.move')}
+						</Button>
+						<Button size="xs" variant="destructive" onClick={() => setConfirm('delete')}>
+							{t('common.delete')}
+						</Button>
+					</div>
+				) : null}
 				{hasNextPage ? (
 					<Alert className="ml-auto w-auto flex-row items-center py-1.5">
 						<AlertTitle>{t('browser.truncated')}</AlertTitle>

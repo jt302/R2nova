@@ -211,6 +211,9 @@ export function ObjectTable({
 										)}
 										style={{ height: ROW, transform: `translateY(${v.start}px)` }}
 										onClick={(e) => {
+											if (e.detail > 1) {
+												return;
+											}
 											if (e.shiftKey) {
 												onSelectionChange(selectRange(keys, anchor, v.index));
 												return;
