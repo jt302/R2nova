@@ -103,8 +103,8 @@ export function AccountsPage({
 	});
 
 	return (
-		<div className="h-full overflow-auto">
-			<div className="mx-auto flex max-w-3xl flex-col gap-6 p-8">
+		<div className="h-full min-h-0 w-full flex-1 overflow-y-auto scrollbar-gutter-stable">
+			<div className="mx-auto flex w-full max-w-3xl flex-col gap-6 p-8">
 				<PageHeader
 					title={t('profile.manage')}
 					description={t('profile.emptyBody')}

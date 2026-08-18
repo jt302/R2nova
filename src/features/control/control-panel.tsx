@@ -205,8 +205,8 @@ export function ControlPanel() {
 	const lockOn = parseLockEnabled(lock.data);
 
 	return (
-		<div className="h-full overflow-auto">
-			<div className="mx-auto flex max-w-3xl flex-col gap-6 p-8">
+		<div className="h-full min-h-0 w-full overflow-y-auto scrollbar-gutter-stable">
+			<div className="mx-auto flex w-full max-w-3xl flex-col gap-6 p-8">
 				<PageHeader title={t('nav.settings')} description={bucket || t('browser.selectBucket')} />
 
 				<Tabs value={section} onValueChange={setSection}>

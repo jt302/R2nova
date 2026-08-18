@@ -338,7 +338,7 @@ export function AppShell() {
 function Onboarding({ onAdd }: { onAdd: () => void }) {
 	const { t } = useTranslation();
 	return (
-		<div className="flex h-full w-full items-center justify-center overflow-auto p-8">
+		<div className="flex h-full w-full items-center justify-center overflow-y-auto scrollbar-gutter-stable p-8">
 			<div className="flex w-full max-w-xl flex-col gap-8">
 				<Empty className="border-dashed">
 					<EmptyHeader>

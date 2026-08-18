@@ -190,7 +190,7 @@ export function ObjectTable({
 					</div>
 					<div
 						ref={parentRef}
-						className="relative min-h-0 flex-1 overflow-auto"
+						className="relative min-h-0 flex-1 overflow-auto scrollbar-gutter-stable"
 						onContextMenu={(e) => {
 							if (e.target === e.currentTarget) {
 								setCtxRow(null);
