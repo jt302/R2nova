@@ -1,0 +1,5 @@
+[toolchain]
+# aws-sdk-s3 1.142.0 MSRV is 1.94.1 (keyring-core needs ≥1.88).
+channel = "1.94.1"
+profile = "minimal"
+components = ["rustfmt", "clippy"]
