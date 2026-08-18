@@ -70,11 +70,12 @@ import { useActiveTab, useCurrentLocation, useNavStore } from '@/store/nav';
 
 type ConfirmKind = 'delete' | 'loadMore' | null;
 
-export function BrowserPage({ onPreview }: { onPreview: (key: string) => void }) {
+export function BrowserPage() {
 	const { t } = useTranslation();
 	const qc = useQueryClient();
 	const profileId = useNavStore((s) => s.profileId);
 	const go = useNavStore((s) => s.go);
+	const setPreview = useNavStore((s) => s.setPreview);
 	const back = useNavStore((s) => s.back);
 	const forward = useNavStore((s) => s.forward);
 	const tab = useActiveTab();
@@ -173,7 +174,9 @@ export function BrowserPage({ onPreview }: { onPreview: (key: string) => void })
 			go({ bucket, prefix: row.key });
 			return;
 		}
-		onPreview(row.key);
+		if (profileId && bucket) {
+			setPreview({ profileId, bucket, key: row.key });
+		}
 	}
 
 	async function upload() {
@@ -358,7 +361,11 @@ export function BrowserPage({ onPreview }: { onPreview: (key: string) => void })
 					selection={selection}
 					onSelectionChange={setSelection}
 					onOpen={openRow}
-					onPreview={(row) => onPreview(row.key)}
+					onPreview={(row) => {
+						if (profileId && bucket) {
+							setPreview({ profileId, bucket, key: row.key });
+						}
+					}}
 					onDownload={(row) => void downloadOne(row.key)}
 					onRename={(row) => {
 						setRenameSrc(row?.key ?? selected[0] ?? '');

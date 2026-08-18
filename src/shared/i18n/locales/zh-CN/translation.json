@@ -159,7 +159,11 @@
 		"copied": "链接已复制",
 		"metadata": "元数据",
 		"loading": "正在准备预览…",
-		"unavailable": "这种文件只能下载，不能预览。"
+		"unavailable": "此类型暂不支持预览",
+		"failed": "无法预览这个对象",
+		"notFound": "对象不存在或已不在当前桶",
+		"tooLarge": "文件太大，不能下载到本地预览。可用分享链接或直接下载。",
+		"retry": "重试"
 	},
 	"control": {
 		"createBucket": "创建存储桶",

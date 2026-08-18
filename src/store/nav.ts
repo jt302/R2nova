@@ -1,14 +1,21 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import {
+	type PreviewTarget,
+	previewAfterLocation,
+	previewAfterProfile,
+} from '@/shared/lib/preview';
 
 export type Location = { bucket: string; prefix: string };
 export type MainView = 'objects' | 'settings' | 'accounts';
+export type { PreviewTarget };
 
 export type Tab = {
 	id: string;
 	title: string;
 	stack: Location[];
 	index: number;
+	preview: PreviewTarget | null;
 };
 
 type NavState = {
@@ -22,6 +29,7 @@ type NavState = {
 	setTheme: (theme: NavState['theme']) => void;
 	setMainView: (view: MainView) => void;
 	setSidebarCollapsed: (collapsed: boolean) => void;
+	setPreview: (preview: PreviewTarget | null) => void;
 	go: (loc: Location) => void;
 	back: () => void;
 	forward: () => void;
@@ -45,7 +53,12 @@ function emptyTab(): Tab {
 		title: '/',
 		stack: [{ bucket: '', prefix: '' }],
 		index: 0,
+		preview: null,
 	};
+}
+
+function withPreview(tab: Tab, loc: Location): Tab {
+	return { ...tab, preview: previewAfterLocation(tab.preview, loc) };
 }
 
 export const useNavStore = create<NavState>()(
@@ -59,10 +72,21 @@ export const useNavStore = create<NavState>()(
 				theme: 'system',
 				mainView: 'objects',
 				sidebarCollapsed: false,
-				setProfileId: (id) => set({ profileId: id }),
+				setProfileId: (id) =>
+					set((s) => ({
+						profileId: id,
+						tabs: s.tabs.map((t) => ({
+							...t,
+							preview: previewAfterProfile(t.preview, id),
+						})),
+					})),
 				setTheme: (theme) => set({ theme }),
 				setMainView: (mainView) => set({ mainView }),
 				setSidebarCollapsed: (sidebarCollapsed) => set({ sidebarCollapsed }),
+				setPreview: (preview) =>
+					set((s) => ({
+						tabs: s.tabs.map((t) => (t.id === s.activeTabId ? { ...t, preview } : t)),
+					})),
 				go: (loc) =>
 					set((s) => {
 						const tabs = s.tabs.map((t) => {
@@ -70,28 +94,37 @@ export const useNavStore = create<NavState>()(
 								return t;
 							}
 							const stack = [...t.stack.slice(0, t.index + 1), loc];
-							return {
-								...t,
-								stack,
-								index: stack.length - 1,
-								title: tabTitle(loc),
-							};
+							return withPreview(
+								{
+									...t,
+									stack,
+									index: stack.length - 1,
+									title: tabTitle(loc),
+								},
+								loc,
+							);
 						});
 						return { tabs };
 					}),
 				back: () =>
 					set((s) => ({
-						tabs: s.tabs.map((t) =>
-							t.id === s.activeTabId && t.index > 0 ? { ...t, index: t.index - 1 } : t,
-						),
+						tabs: s.tabs.map((t) => {
+							if (t.id !== s.activeTabId || t.index <= 0) {
+								return t;
+							}
+							const index = t.index - 1;
+							return withPreview({ ...t, index }, t.stack[index]);
+						}),
 					})),
 				forward: () =>
 					set((s) => ({
-						tabs: s.tabs.map((t) =>
-							t.id === s.activeTabId && t.index < t.stack.length - 1
-								? { ...t, index: t.index + 1 }
-								: t,
-						),
+						tabs: s.tabs.map((t) => {
+							if (t.id !== s.activeTabId || t.index >= t.stack.length - 1) {
+								return t;
+							}
+							const index = t.index + 1;
+							return withPreview({ ...t, index }, t.stack[index]);
+						}),
 					})),
 				newTab: () =>
 					set((s) => {
@@ -122,15 +155,27 @@ export const useNavStore = create<NavState>()(
 			name: 'r2nova-nav',
 			merge: (persisted, current) => {
 				const incoming = (persisted ?? {}) as Partial<NavState> & { tabs?: Tab[] };
+				const tabs = (incoming.tabs?.length ? incoming.tabs : current.tabs).map((t) => ({
+					...t,
+					preview: t.preview ?? null,
+				}));
 				return {
 					...current,
 					...incoming,
 					mainView: incoming.mainView ?? 'objects',
 					sidebarCollapsed: incoming.sidebarCollapsed ?? false,
-					tabs: incoming.tabs?.length ? incoming.tabs : current.tabs,
+					tabs,
 					activeTabId: incoming.activeTabId ?? current.activeTabId,
 				};
 			},
+			partialize: (s) => ({
+				profileId: s.profileId,
+				tabs: s.tabs.map((t) => ({ ...t, preview: null })),
+				activeTabId: s.activeTabId,
+				theme: s.theme,
+				mainView: s.mainView,
+				sidebarCollapsed: s.sidebarCollapsed,
+			}),
 		},
 	),
 );

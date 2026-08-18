@@ -43,7 +43,7 @@ import { ProfileFormDialog } from '@/features/profile/profile-form-dialog';
 import { QueuePanel, useActiveTransferCount } from '@/features/transfer/queue-panel';
 import { api } from '@/shared/api/backend';
 import { queryKeys } from '@/shared/config/query-keys';
-import { useNavStore } from '@/store/nav';
+import { useActiveTab, useNavStore } from '@/store/nav';
 import { ActivityRail } from '@/widgets/activity-rail';
 import { BucketSidebar } from '@/widgets/bucket-sidebar';
 import { CostBar } from '@/widgets/cost-bar';
@@ -81,7 +81,8 @@ export function AppShell() {
 	const back = useNavStore((s) => s.back);
 	const forward = useNavStore((s) => s.forward);
 	const sidebarCollapsed = useNavStore((s) => s.sidebarCollapsed);
-	const [previewKey, setPreviewKey] = useState<string | null>(null);
+	const setPreview = useNavStore((s) => s.setPreview);
+	const activeTab = useActiveTab();
 	const [transfersOpen, setTransfersOpen] = useState(false);
 	const [commandOpen, setCommandOpen] = useState(false);
 	const [formOpen, setFormOpen] = useState(false);
@@ -163,7 +164,8 @@ export function AppShell() {
 	}
 
 	const showSidebar = Boolean(profileId) && mainView !== 'accounts' && !sidebarCollapsed;
-	const showPreview = Boolean(previewKey) && mainView === 'objects';
+	const preview = activeTab.preview;
+	const showPreview = Boolean(preview) && mainView === 'objects';
 
 	return (
 		<div className="flex h-full flex-col bg-background text-foreground">
@@ -277,7 +279,7 @@ export function AppShell() {
 										onManage={() => setMainView('accounts')}
 									/>
 								) : (
-									<BrowserPage onPreview={setPreviewKey} />
+									<BrowserPage />
 								)}
 							</ResizablePanel>
 							{showPreview ? (
@@ -289,7 +291,7 @@ export function AppShell() {
 										maxSize="45"
 										className="min-w-0 overflow-hidden"
 									>
-										<PreviewPane objectKey={previewKey!} onClose={() => setPreviewKey(null)} />
+										<PreviewPane target={preview!} onClose={() => setPreview(null)} />
 									</ResizablePanel>
 								</>
 							) : null}

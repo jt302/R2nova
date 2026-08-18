@@ -159,7 +159,11 @@
 		"copied": "Link copied",
 		"metadata": "Metadata",
 		"loading": "Preparing preview…",
-		"unavailable": "This file type can be downloaded, but not previewed."
+		"unavailable": "Preview is not available for this file type",
+		"failed": "Could not preview this object",
+		"notFound": "This object is missing or is not in the current bucket",
+		"tooLarge": "This file is too large to download for preview. Use a share link or download it.",
+		"retry": "Retry"
 	},
 	"control": {
 		"createBucket": "Create bucket",

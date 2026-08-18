@@ -214,12 +214,11 @@ export function ObjectTable({
 											if (e.detail > 1) {
 												return;
 											}
-											if (e.shiftKey) {
-												onSelectionChange(selectRange(keys, anchor, v.index));
+											if (row.isPrefix) {
+												onOpen(row);
 												return;
 											}
-											setAnchor(v.index);
-											onSelectionChange(toggleKey(selection, row.key));
+											onPreview(row);
 										}}
 										onDoubleClick={() => onOpen(row)}
 										onContextMenu={() => {
@@ -231,8 +230,18 @@ export function ObjectTable({
 									>
 										<Checkbox
 											checked={selected}
+											onPointerDown={(e) => {
+												e.stopPropagation();
+												if (e.shiftKey) {
+													e.preventDefault();
+													onSelectionChange(selectRange(keys, anchor, v.index));
+												}
+											}}
 											onClick={(e) => e.stopPropagation()}
-											onCheckedChange={() => onSelectionChange(toggleKey(selection, row.key))}
+											onCheckedChange={() => {
+												setAnchor(v.index);
+												onSelectionChange(toggleKey(selection, row.key));
+											}}
 										/>
 										<RowIcon row={row} />
 										<span className="truncate" title={row.key}>

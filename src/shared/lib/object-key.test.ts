@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+	fileKind,
 	formatBytes,
 	formatModified,
 	joinKey,
@@ -35,6 +36,12 @@ describe('object key helpers', () => {
 		expect(formatModified(null)).toBe('');
 		expect(formatModified('not-a-date')).toBe('not-a-date');
 		expect(formatModified('2024-01-02T03:04:00.000Z', 'en-US')).toMatch(/2024/);
+	});
+
+	it('classifies previewable text', () => {
+		expect(fileKind('a.sql')).toBe('text');
+		expect(fileKind('logo.svg')).toBe('image');
+		expect(fileKind('skills.zip')).toBe('other');
 	});
 
 	it('builds profile initials', () => {
