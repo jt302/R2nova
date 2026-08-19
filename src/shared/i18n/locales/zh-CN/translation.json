@@ -56,7 +56,7 @@
 		"add": "添加账号",
 		"name": "名称",
 		"accountId": "Account ID",
-		"accountIdHint": "控制台右上角 32 位十六进制 ID，不是登录邮箱。",
+		"accountIdHint": "R2 概述页右侧「帐户详情」里的 32 位十六进制 ID，不是登录邮箱。",
 		"accountIdInvalid": "Account ID 必须是 32 位十六进制，不能是邮箱。",
 		"accessKeyId": "Access Key ID",
 		"secretAccessKey": "Secret Access Key",
