@@ -105,7 +105,10 @@ mod tests {
 
 	#[test]
 	fn probe_error_does_not_echo_secret() {
-		let msg = redact_secrets("SignatureDoesNotMatch: check secret-value", &["secret-value"]);
+		let msg = redact_secrets(
+			"SignatureDoesNotMatch: check secret-value",
+			&["secret-value"],
+		);
 		assert_eq!(msg, "SignatureDoesNotMatch: check ***");
 		assert!(!msg.contains("secret-value"));
 	}
