@@ -32,11 +32,12 @@ export function CommandPalette({
 	onOpenChange: (open: boolean) => void;
 	onTransfers?: () => void;
 }) {
-	const { t, i18n } = useTranslation();
+	const { t } = useTranslation();
 	const profileId = useNavStore((s) => s.profileId);
 	const go = useNavStore((s) => s.go);
 	const newTab = useNavStore((s) => s.newTab);
 	const setTheme = useNavStore((s) => s.setTheme);
+	const setLanguage = useNavStore((s) => s.setLanguage);
 	const setMainView = useNavStore((s) => s.setMainView);
 	const { data: buckets = [] } = useQuery({
 		queryKey: queryKeys.buckets(profileId ?? ''),
@@ -153,7 +154,7 @@ export function CommandPalette({
 					<CommandItem
 						value="language-zh"
 						onSelect={() => {
-							void i18n.changeLanguage('zh-CN');
+							setLanguage('zh-CN');
 							onOpenChange(false);
 						}}
 					>
@@ -163,7 +164,7 @@ export function CommandPalette({
 					<CommandItem
 						value="language-en"
 						onSelect={() => {
-							void i18n.changeLanguage('en-US');
+							setLanguage('en-US');
 							onOpenChange(false);
 						}}
 					>

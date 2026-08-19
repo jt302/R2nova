@@ -1,6 +1,15 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import {
+	type AppLanguage,
+	clampPreviewSize,
+	clampSidebarWidth,
+	initialLanguage,
+	initialPreviewSize,
+	initialSidebarWidth,
+	parseLanguage,
+} from '@/shared/lib/prefs';
+import {
 	type PreviewTarget,
 	previewAfterLocation,
 	previewAfterProfile,
@@ -8,7 +17,7 @@ import {
 
 export type Location = { bucket: string; prefix: string };
 export type MainView = 'objects' | 'settings' | 'accounts';
-export type { PreviewTarget };
+export type { AppLanguage, PreviewTarget };
 
 export type Tab = {
 	id: string;
@@ -23,12 +32,18 @@ type NavState = {
 	tabs: Tab[];
 	activeTabId: string;
 	theme: 'light' | 'dark' | 'system';
+	language: AppLanguage;
 	mainView: MainView;
 	sidebarCollapsed: boolean;
+	sidebarWidth: number;
+	previewSize: number;
 	setProfileId: (id: string | null) => void;
 	setTheme: (theme: NavState['theme']) => void;
+	setLanguage: (language: AppLanguage) => void;
 	setMainView: (view: MainView) => void;
 	setSidebarCollapsed: (collapsed: boolean) => void;
+	setSidebarWidth: (width: number) => void;
+	setPreviewSize: (size: number) => void;
 	setPreview: (preview: PreviewTarget | null) => void;
 	go: (loc: Location) => void;
 	back: () => void;
@@ -70,8 +85,11 @@ export const useNavStore = create<NavState>()(
 				tabs: [first],
 				activeTabId: first.id,
 				theme: 'system',
+				language: initialLanguage(),
 				mainView: 'objects',
 				sidebarCollapsed: false,
+				sidebarWidth: initialSidebarWidth(),
+				previewSize: initialPreviewSize(),
 				setProfileId: (id) =>
 					set((s) => ({
 						profileId: id,
@@ -81,8 +99,11 @@ export const useNavStore = create<NavState>()(
 						})),
 					})),
 				setTheme: (theme) => set({ theme }),
+				setLanguage: (language) => set({ language }),
 				setMainView: (mainView) => set({ mainView }),
 				setSidebarCollapsed: (sidebarCollapsed) => set({ sidebarCollapsed }),
+				setSidebarWidth: (width) => set({ sidebarWidth: clampSidebarWidth(width) }),
+				setPreviewSize: (size) => set({ previewSize: clampPreviewSize(size) }),
 				setPreview: (preview) =>
 					set((s) => ({
 						tabs: s.tabs.map((t) => (t.id === s.activeTabId ? { ...t, preview } : t)),
@@ -162,8 +183,11 @@ export const useNavStore = create<NavState>()(
 				return {
 					...current,
 					...incoming,
+					language: parseLanguage(incoming.language) ?? current.language,
 					mainView: incoming.mainView ?? 'objects',
 					sidebarCollapsed: incoming.sidebarCollapsed ?? false,
+					sidebarWidth: clampSidebarWidth(incoming.sidebarWidth ?? current.sidebarWidth),
+					previewSize: clampPreviewSize(incoming.previewSize ?? current.previewSize),
 					tabs,
 					activeTabId: incoming.activeTabId ?? current.activeTabId,
 				};
@@ -173,8 +197,11 @@ export const useNavStore = create<NavState>()(
 				tabs: s.tabs.map((t) => ({ ...t, preview: null })),
 				activeTabId: s.activeTabId,
 				theme: s.theme,
+				language: s.language,
 				mainView: s.mainView,
 				sidebarCollapsed: s.sidebarCollapsed,
+				sidebarWidth: s.sidebarWidth,
+				previewSize: s.previewSize,
 			}),
 		},
 	),

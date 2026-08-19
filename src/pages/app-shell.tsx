@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { usePanelRef } from 'react-resizable-panels';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import {
@@ -51,6 +52,7 @@ import { ProfileFormDialog } from '@/features/profile/profile-form-dialog';
 import { QueuePanel, useActiveTransferCount } from '@/features/transfer/queue-panel';
 import { api } from '@/shared/api/backend';
 import { queryKeys } from '@/shared/config/query-keys';
+import { SIDEBAR_MAX_PX, SIDEBAR_MIN_PX } from '@/shared/lib/prefs';
 import { applyDocumentTheme, windowTheme } from '@/shared/lib/theme';
 import { useActiveTab, useNavStore } from '@/store/nav';
 import { AboutDialog } from '@/widgets/about-dialog';
@@ -81,6 +83,13 @@ export function AppShell() {
 	const { t, i18n } = useTranslation();
 	const theme = useNavStore((s) => s.theme);
 	const setTheme = useNavStore((s) => s.setTheme);
+	const language = useNavStore((s) => s.language);
+	const setLanguage = useNavStore((s) => s.setLanguage);
+	const sidebarWidth = useNavStore((s) => s.sidebarWidth);
+	const setSidebarWidth = useNavStore((s) => s.setSidebarWidth);
+	const previewSize = useNavStore((s) => s.previewSize);
+	const setPreviewSize = useNavStore((s) => s.setPreviewSize);
+	const sidebarRef = usePanelRef();
 	const profileId = useNavStore((s) => s.profileId);
 	const mainView = useNavStore((s) => s.mainView);
 	const setMainView = useNavStore((s) => s.setMainView);
@@ -110,6 +119,13 @@ export function AppShell() {
 	});
 
 	useThemeClass(theme);
+
+	useEffect(() => {
+		document.documentElement.lang = language;
+		if (i18n.language !== language) {
+			void i18n.changeLanguage(language);
+		}
+	}, [i18n, language]);
 
 	useEffect(() => {
 		const onKey = (e: KeyboardEvent) => {
@@ -162,7 +178,6 @@ export function AppShell() {
 			: theme === 'light'
 				? t('command.themeLight')
 				: t('command.themeSystem');
-	const language = i18n.language.startsWith('zh') ? 'zh-CN' : 'en-US';
 	const languageLabel = language === 'zh-CN' ? t('command.languageZh') : t('command.languageEn');
 
 	function openAdd() {
@@ -234,7 +249,7 @@ export function AppShell() {
 							value={language}
 							onValueChange={(value) => {
 								if (value === 'zh-CN' || value === 'en-US') {
-									void i18n.changeLanguage(value);
+									setLanguage(value);
 								}
 							}}
 						>
@@ -286,13 +301,28 @@ export function AppShell() {
 					) : !profileId ? (
 						<Onboarding onAdd={openAdd} />
 					) : (
-						<ResizablePanelGroup orientation="horizontal" className="h-full">
+						<ResizablePanelGroup
+							id="shell-outer"
+							orientation="horizontal"
+							className="h-full"
+							onLayoutChanged={(_layout, { isUserInteraction }) => {
+								if (!isUserInteraction) {
+									return;
+								}
+								const px = sidebarRef.current?.getSize().inPixels;
+								if (px) {
+									setSidebarWidth(px);
+								}
+							}}
+						>
 							{showSidebar ? (
 								<>
 									<ResizablePanel
-										defaultSize="260px"
-										minSize="240px"
-										maxSize="420px"
+										id="sidebar"
+										panelRef={sidebarRef}
+										defaultSize={`${sidebarWidth}px`}
+										minSize={`${SIDEBAR_MIN_PX}px`}
+										maxSize={`${SIDEBAR_MAX_PX}px`}
 										groupResizeBehavior="preserve-pixel-size"
 										className="overflow-hidden"
 									>
@@ -301,36 +331,50 @@ export function AppShell() {
 									<ResizableHandle />
 								</>
 							) : null}
-							<ResizablePanel
-								defaultSize={showPreview ? '52' : '80'}
-								minSize="30"
-								className="min-w-0 overflow-hidden"
-							>
-								{mainView === 'settings' ? (
-									<ControlPanel />
-								) : currentProfile?.capability === 'invalid' ? (
-									<InvalidAccountState
-										lastError={currentProfile.lastError}
-										onEdit={() => openEdit(currentProfile)}
-										onManage={() => setMainView('accounts')}
-									/>
-								) : (
-									<BrowserPage />
-								)}
-							</ResizablePanel>
-							{showPreview ? (
-								<>
-									<ResizableHandle />
-									<ResizablePanel
-										defaultSize="28"
-										minSize="18"
-										maxSize="45"
-										className="min-w-0 overflow-hidden"
-									>
-										<PreviewPane target={preview!} onClose={() => setPreview(null)} />
+							<ResizablePanel id="rest" minSize="30" className="min-w-0 overflow-hidden">
+								<ResizablePanelGroup
+									id="shell-inner"
+									orientation="horizontal"
+									className="h-full"
+									onLayoutChanged={(layout, { isUserInteraction }) => {
+										if (!isUserInteraction) {
+											return;
+										}
+										const size = layout.preview;
+										if (typeof size === 'number') {
+											setPreviewSize(size);
+										}
+									}}
+								>
+									<ResizablePanel id="browser" minSize="30" className="min-w-0 overflow-hidden">
+										{mainView === 'settings' ? (
+											<ControlPanel />
+										) : currentProfile?.capability === 'invalid' ? (
+											<InvalidAccountState
+												lastError={currentProfile.lastError}
+												onEdit={() => openEdit(currentProfile)}
+												onManage={() => setMainView('accounts')}
+											/>
+										) : (
+											<BrowserPage />
+										)}
 									</ResizablePanel>
-								</>
-							) : null}
+									{showPreview ? (
+										<>
+											<ResizableHandle />
+											<ResizablePanel
+												id="preview"
+												defaultSize={`${previewSize}%`}
+												minSize="18"
+												maxSize="45"
+												className="min-w-0 overflow-hidden"
+											>
+												<PreviewPane target={preview!} onClose={() => setPreview(null)} />
+											</ResizablePanel>
+										</>
+									) : null}
+								</ResizablePanelGroup>
+							</ResizablePanel>
 						</ResizablePanelGroup>
 					)}
 				</main>
