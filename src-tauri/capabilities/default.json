@@ -10,6 +10,8 @@
 		"store:default",
 		"opener:default",
 		"log:default",
-		"clipboard-manager:allow-write-text"
+		"clipboard-manager:allow-write-text",
+		"updater:default",
+		"process:allow-restart"
 	]
 }

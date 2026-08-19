@@ -42,6 +42,7 @@
 	},
 	"bundle": {
 		"active": true,
+		"createUpdaterArtifacts": true,
 		"targets": ["app", "dmg", "nsis"],
 		"icon": [
 			"icons/32x32.png",
@@ -53,6 +54,12 @@
 		"macOS": {
 			"minimumSystemVersion": "13.0",
 			"hardenedRuntime": true
+		}
+	},
+	"plugins": {
+		"updater": {
+			"pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDY4ODZFNDA4NjE2NUY0MwpSV1JEWHhhR1FHNklCbnBGZmpTaVBPQXRBVTJzaUNlNm9UcU9Md0tSWEdlcmpvU0xWeUwxMm9PTgo=",
+			"endpoints": ["https://github.com/jt302/R2nova/releases/latest/download/latest.json"]
 		}
 	}
 }

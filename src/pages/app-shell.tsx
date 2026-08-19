@@ -13,7 +13,6 @@ import {
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { usePanelRef } from 'react-resizable-panels';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import {
 	DropdownMenu,
@@ -109,12 +108,6 @@ export function AppShell() {
 		queryFn: api.listProfiles,
 	});
 	const currentProfile = profiles.find((p) => p.id === profileId);
-	const { data: version } = useQuery({ queryKey: ['version'], queryFn: api.appVersion });
-	const { data: latest } = useQuery({
-		queryKey: ['latest-release'],
-		queryFn: api.checkLatestRelease,
-		staleTime: 60_000,
-	});
 
 	useThemeClass(theme);
 
@@ -176,8 +169,6 @@ export function AppShell() {
 		return () => window.removeEventListener('keydown', onKey);
 	}, [activeTabId, back, closeTab, forward, newTab, setMainView]);
 
-	const update =
-		latest && version && latest !== version ? t('app.updateAvailable', { version: latest }) : null;
 	const themeLabel =
 		theme === 'dark'
 			? t('command.themeDark')
@@ -202,12 +193,6 @@ export function AppShell() {
 
 	return (
 		<div className="flex h-full flex-col bg-background text-foreground">
-			{update ? (
-				<Alert className="rounded-none border-x-0 border-t-0">
-					<AlertTitle>{t('app.name')}</AlertTitle>
-					<AlertDescription>{update}</AlertDescription>
-				</Alert>
-			) : null}
 			<header className="flex h-11 shrink-0 items-center gap-2 border-b bg-titlebar px-2">
 				<TabStrip />
 				<Button
@@ -292,7 +277,7 @@ export function AppShell() {
 						</DropdownMenuRadioGroup>
 					</DropdownMenuContent>
 				</DropdownMenu>
-				<AboutDialog version={version} latest={latest} />
+				<AboutDialog />
 			</header>
 			<div className="flex min-h-0 flex-1">
 				<ActivityRail transferCount={transferCount} onAdd={openAdd} />

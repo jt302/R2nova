@@ -2,7 +2,6 @@
 	"app": {
 		"name": "R2nova",
 		"tagline": "Cloudflare R2 桌面客户端",
-		"updateAvailable": "有新版本 {{version}}，可用 brew upgrade r2nova 更新",
 		"commandPalette": "命令面板",
 		"searchHint": "搜索命令或存储桶"
 	},
@@ -10,6 +9,12 @@
 		"title": "关于",
 		"version": "版本",
 		"upToDate": "已是最新版本",
+		"updateAvailable": "有新版本 {{version}}",
+		"checkForUpdates": "检查更新",
+		"updateAndRestart": "更新并重启",
+		"checking": "正在检查…",
+		"downloading": "正在下载更新…",
+		"updateFailed": "检查或安装更新失败",
 		"repository": "代码仓库",
 		"license": "许可证"
 	},

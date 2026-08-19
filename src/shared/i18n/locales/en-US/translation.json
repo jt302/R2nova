@@ -2,7 +2,6 @@
 	"app": {
 		"name": "R2nova",
 		"tagline": "Cloudflare R2 desktop client",
-		"updateAvailable": "Update {{version}} is available — brew upgrade r2nova",
 		"commandPalette": "Command palette",
 		"searchHint": "Search commands or buckets"
 	},
@@ -10,6 +9,12 @@
 		"title": "About",
 		"version": "Version",
 		"upToDate": "You're up to date",
+		"updateAvailable": "Update {{version}} is available",
+		"checkForUpdates": "Check for updates",
+		"updateAndRestart": "Update and restart",
+		"checking": "Checking…",
+		"downloading": "Downloading update…",
+		"updateFailed": "Couldn't check or install the update",
 		"repository": "Repository",
 		"license": "License"
 	},

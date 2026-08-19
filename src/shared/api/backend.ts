@@ -118,7 +118,6 @@ export const api = {
 	costEstimate: (classA: number, classB: number) =>
 		tauriInvoke<number>('cost_estimate', { classA, classB }),
 	appVersion: () => tauriInvoke<string>('app_version'),
-	checkLatestRelease: () => tauriInvoke<string | null>('check_latest_release'),
 	cfCreateBucket: (profileId: string, name: string) =>
 		tauriInvoke<void>('cf_create_bucket', { profileId, name }),
 	cfDeleteBucket: (profileId: string, name: string) =>

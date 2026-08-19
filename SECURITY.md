@@ -16,11 +16,11 @@ The WebView is untrusted relative to R2 credentials. All signing, HTTPS, and fil
 - Markdown preview: no `rehype-raw`. Object bodies are attacker-controlled.
 - CSP allows `ipc:` / `http://ipc.localhost` and `asset:` only for `$APPCACHE/**`. Presigned media preview may load `https://*.r2.cloudflarestorage.com` (and EU / FedRAMP hosts) in img/media/frame.
 
-## Updates (v1)
+## Updates
 
-Unsigned macOS builds. No `tauri-plugin-updater`. Version check is a GitHub Releases GET.
+`tauri-plugin-updater` verifies minisign signatures before install. The public key is in `tauri.conf.json`. The private key is not in git; CI uses `TAURI_SIGNING_PRIVATE_KEY`. Private key loss means existing installs can never receive signed updates.
 
-Generate the updater keypair on day one (`pnpm exec tauri signer generate -w src-tauri/.updater-key`) and **store the private key in a password manager**. Both `.updater-key` and `.updater-key.pub` are gitignored. Private key loss means you can never sign updates for existing installs. Switch to `tauri-plugin-updater` after code signing.
+macOS builds are still unsigned. Gatekeeper may re-prompt after an in-app replace.
 
 ## Reporting
 

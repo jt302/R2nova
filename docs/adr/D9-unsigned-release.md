@@ -1,14 +1,12 @@
 # D9 — 首发不签名，更新走轻量检查
 
-- 状态：已采纳
+- 状态：已 superseded（2026-08-19）
 - 日期：2026-08-18
 
 ## 决策
 
-v1 走 Homebrew Cask + 未签名 DMG。不上 `tauri-plugin-updater`（自动替换后 macOS Gatekeeper 会重新拦截）。启动时查 GitHub Releases API，提示 `brew upgrade` 或手动下载。
+原决策：v1 走 Homebrew Cask + 未签名 DMG，不上 `tauri-plugin-updater`，启动时查 GitHub Releases API，提示 `brew upgrade`。
 
-第一天仍生成 updater 密钥对并备份进密码管理器（私钥不进 git）。上签名后再切 updater。
+已改为 `tauri-plugin-updater`：关于弹窗内检查 / 下载安装 / `relaunch`。更新包用 minisign 私钥签名，公钥写在 `tauri.conf.json`。macOS 应用仍未做 Apple 代码签名，替换后 Gatekeeper 可能再拦；Homebrew Cask 安装后自更新会和 brew 记账不一致。
 
-## 理由
-
-未签名与 updater 插件冲突。密钥对必须提前备份：私钥丢失则无法给已安装用户推更新。
+私钥只在密码管理器和 CI secret（`TAURI_SIGNING_PRIVATE_KEY`），不进 git。私钥丢失则无法给已安装用户推更新。
