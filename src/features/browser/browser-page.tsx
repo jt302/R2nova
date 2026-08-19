@@ -9,7 +9,7 @@ import {
 	Search,
 	Upload,
 } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -54,6 +54,7 @@ import { Separator } from '@/components/ui/separator';
 import { Spinner } from '@/components/ui/spinner';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import type { ObjectItem } from '@/entities/profile/types';
+import { createDropGate } from '@/features/browser/drop-gate';
 import { ObjectTable } from '@/features/browser/object-table';
 import { api } from '@/shared/api/backend';
 import { isAppError } from '@/shared/api/tauri-invoke';
@@ -72,6 +73,8 @@ import { createTransferChannel } from '@/shared/lib/transfer-channel';
 import { useActiveTab, useCurrentLocation, useNavStore } from '@/store/nav';
 
 type ConfirmKind = 'delete' | 'loadMore' | null;
+
+const takeFileDrop = createDropGate();
 
 export function BrowserPage() {
 	const { t } = useTranslation();
@@ -103,6 +106,8 @@ export function BrowserPage() {
 	const [deletePrefixes, setDeletePrefixes] = useState<string[]>([]);
 	const [confirm, setConfirm] = useState<ConfirmKind>(null);
 	const [loadQuote, setLoadQuote] = useState(0);
+	const destRef = useRef({ profileId, bucket, prefix, t });
+	destRef.current = { profileId, bucket, prefix, t };
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: folder change must reset selection
 	useEffect(() => {
@@ -111,26 +116,32 @@ export function BrowserPage() {
 	}, [bucket, prefix]);
 
 	useEffect(() => {
-		let unlisten: (() => void) | undefined;
-		void (async () => {
-			const { getCurrentWebview } = await import('@tauri-apps/api/webview');
-			unlisten = await getCurrentWebview().onDragDropEvent((event) => {
-				if (event.payload.type !== 'drop' || !profileId || !bucket) {
+		const pending = import('@tauri-apps/api/webview').then(({ getCurrentWebview }) =>
+			getCurrentWebview().onDragDropEvent((event) => {
+				if (event.payload.type !== 'drop') {
+					return;
+				}
+				const dest = destRef.current;
+				if (!dest.profileId || !dest.bucket || !takeFileDrop(event.payload.paths)) {
 					return;
 				}
 				void api
 					.uploadPaths({
-						profileId,
-						bucket,
-						prefix,
+						profileId: dest.profileId,
+						bucket: dest.bucket,
+						prefix: dest.prefix,
 						paths: event.payload.paths,
 						onEvent: createTransferChannel(),
 					})
-					.catch((err) => toast.error(isAppError(err) ? err.message : t('toast.uploadFailed')));
-			});
-		})();
-		return () => unlisten?.();
-	}, [profileId, bucket, prefix, t]);
+					.catch((err) =>
+						toast.error(isAppError(err) ? err.message : dest.t('toast.uploadFailed')),
+					);
+			}),
+		);
+		return () => {
+			void pending.then((unlisten) => unlisten());
+		};
+	}, []);
 
 	const objects = useInfiniteQuery({
 		queryKey: queryKeys.objects(profileId ?? '', bucket, prefix),
