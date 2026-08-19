@@ -52,6 +52,7 @@ import { QueuePanel, useActiveTransferCount } from '@/features/transfer/queue-pa
 import { api } from '@/shared/api/backend';
 import { queryKeys } from '@/shared/config/query-keys';
 import { useActiveTab, useNavStore } from '@/store/nav';
+import { AboutDialog } from '@/widgets/about-dialog';
 import { ActivityRail } from '@/widgets/activity-rail';
 import { BucketSidebar } from '@/widgets/bucket-sidebar';
 import { CostBar } from '@/widgets/cost-bar';
@@ -258,9 +259,7 @@ export function AppShell() {
 						</DropdownMenuRadioGroup>
 					</DropdownMenuContent>
 				</DropdownMenu>
-				{version ? (
-					<span className="pr-1 text-xs tabular-nums text-muted-foreground">v{version}</span>
-				) : null}
+				<AboutDialog version={version} latest={latest} />
 			</header>
 			<div className="flex min-h-0 flex-1">
 				<ActivityRail

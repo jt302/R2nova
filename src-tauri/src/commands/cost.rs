@@ -26,7 +26,7 @@ pub async fn app_version() -> AppResult<String> {
 
 #[tauri::command]
 pub async fn check_latest_release() -> AppResult<Option<String>> {
-	let url = "https://api.github.com/repos/r2nova/r2nova/releases/latest";
+	let url = "https://api.github.com/repos/jt302/R2nova/releases/latest";
 	let client = reqwest::Client::new();
 	let resp = client.get(url).header("User-Agent", "r2nova").send().await;
 	let Ok(resp) = resp else {

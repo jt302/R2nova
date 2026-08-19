@@ -6,6 +6,13 @@
 		"commandPalette": "命令面板",
 		"searchHint": "搜索命令或存储桶"
 	},
+	"about": {
+		"title": "关于",
+		"version": "版本",
+		"upToDate": "已是最新版本",
+		"repository": "代码仓库",
+		"license": "许可证"
+	},
 	"nav": {
 		"buckets": "存储桶",
 		"objects": "对象",

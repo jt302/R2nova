@@ -6,6 +6,13 @@
 		"commandPalette": "Command palette",
 		"searchHint": "Search commands or buckets"
 	},
+	"about": {
+		"title": "About",
+		"version": "Version",
+		"upToDate": "You're up to date",
+		"repository": "Repository",
+		"license": "License"
+	},
 	"nav": {
 		"buckets": "Buckets",
 		"objects": "Objects",
