@@ -1024,6 +1024,7 @@ fn file_len(path: &Path) -> u64 {
 	std::fs::metadata(path).map(|m| m.len()).unwrap_or(0)
 }
 
+#[cfg(test)]
 pub fn unique_dest(path: &Path) -> PathBuf {
 	unique_dest_among(path, &HashSet::new())
 }
