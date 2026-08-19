@@ -62,13 +62,21 @@ import { joinKey } from '@/shared/lib/object-key';
 import {
 	clearSelection,
 	emptySelection,
+	partitionSelected,
 	type Selection,
 	selectedKeys,
+	selectionCaps,
 } from '@/shared/lib/selection';
 import { createTransferChannel } from '@/shared/lib/transfer-channel';
 import { useActiveTab, useCurrentLocation, useNavStore } from '@/store/nav';
 
 type ConfirmKind = 'delete' | 'loadMore' | null;
+
+function joinDest(dir: string, name: string): string {
+	const win = dir.includes('\\') && !dir.includes('/');
+	const sep = win ? '\\' : '/';
+	return `${dir.replace(/[\\/]+$/, '')}${sep}${name}`;
+}
 
 export function BrowserPage() {
 	const { t } = useTranslation();
@@ -95,7 +103,8 @@ export function BrowserPage() {
 	const [moveKeys, setMoveKeys] = useState<string[]>([]);
 	const [moveOpen, setMoveOpen] = useState(false);
 	const [movePrefix, setMovePrefix] = useState('');
-	const [deleteKeys, setDeleteKeys] = useState<string[]>([]);
+	const [deleteFiles, setDeleteFiles] = useState<string[]>([]);
+	const [deletePrefixes, setDeletePrefixes] = useState<string[]>([]);
 	const [confirm, setConfirm] = useState<ConfirmKind>(null);
 	const [loadQuote, setLoadQuote] = useState(0);
 
@@ -153,14 +162,10 @@ export function BrowserPage() {
 
 	const keys = rows.map((r) => r.key);
 	const selected = selectedKeys(selection, keys);
+	const { files, prefixes } = partitionSelected(rows, selected);
+	const caps = selectionCaps({ files, prefixes });
 	const hasNextPage = Boolean(objects.hasNextPage);
-
-	function lockedKeys(row?: ObjectItem | null): string[] {
-		if (selected.length > 0) {
-			return selected;
-		}
-		return row?.key ? [row.key] : [];
-	}
+	const rowByKey = useMemo(() => new Map(rows.map((r) => [r.key, r])), [rows]);
 
 	const invalidate = () => {
 		void qc.invalidateQueries({ queryKey: queryKeys.objects(profileId ?? '', bucket, prefix) });
@@ -171,7 +176,20 @@ export function BrowserPage() {
 		toast.error(isAppError(err) ? err.message : (fallback ?? String(err)));
 
 	const del = useMutation({
-		mutationFn: () => api.deleteObjects({ profileId: profileId ?? '', bucket, keys: deleteKeys }),
+		mutationFn: async () => {
+			let n = 0;
+			if (deleteFiles.length > 0) {
+				n += await api.deleteObjects({
+					profileId: profileId ?? '',
+					bucket,
+					keys: deleteFiles,
+				});
+			}
+			for (const p of deletePrefixes) {
+				n += await api.deletePrefix({ profileId: profileId ?? '', bucket, prefix: p });
+			}
+			return n;
+		},
 		onSuccess: (n) => {
 			toast.success(t('toast.deleted', { count: n }));
 			invalidate();
@@ -290,6 +308,97 @@ export function BrowserPage() {
 		}
 	}
 
+	async function downloadSelection() {
+		if (!caps.canDownload) {
+			return;
+		}
+		if (files.length === 1) {
+			const key = files[0];
+			if (key) {
+				await downloadOne(key);
+			}
+			return;
+		}
+		if (!profileId || !bucket) {
+			return;
+		}
+		const picked = await open({ directory: true, multiple: false });
+		const dir = Array.isArray(picked) ? picked[0] : picked;
+		if (!dir) {
+			return;
+		}
+		// ponytail: serial download_object; each invoke runs the full GetObject.
+		// Upgrade: enqueue into the transfer engine with a concurrency cap.
+		for (const key of files) {
+			const name = rowByKey.get(key)?.name ?? key.split('/').pop() ?? 'object';
+			const dest = joinDest(dir, name);
+			try {
+				await api.downloadObject({
+					profileId,
+					bucket,
+					key,
+					dest,
+					onEvent: createTransferChannel(),
+				});
+			} catch (err) {
+				fail(err, t('toast.downloadFailed'));
+				return;
+			}
+		}
+	}
+
+	function openRename() {
+		if (!caps.canRename) {
+			return;
+		}
+		const key = files[0];
+		if (!key) {
+			return;
+		}
+		setRenameSrc(key);
+		setRenameTo(rowByKey.get(key)?.name ?? key.split('/').pop() ?? '');
+		setRenameOpen(true);
+	}
+
+	function openCopy() {
+		if (!caps.canCopy) {
+			return;
+		}
+		const key = files[0];
+		if (!key) {
+			return;
+		}
+		setCopySrc(key);
+		setCopyDest(joinKey(prefix, rowByKey.get(key)?.name ?? key.split('/').pop() ?? ''));
+		setCopyOpen(true);
+	}
+
+	function openMove() {
+		if (!caps.canMove) {
+			return;
+		}
+		setMoveKeys(files);
+		setMovePrefix(prefix);
+		setMoveOpen(true);
+	}
+
+	function requestDelete() {
+		if (!caps.canDelete) {
+			return;
+		}
+		setDeleteFiles(files);
+		setDeletePrefixes(prefixes);
+		setConfirm('delete');
+	}
+
+	function refreshList() {
+		void objects.refetch().then((result) => {
+			if (result.error) {
+				fail(result.error, t('toast.refreshFailed'));
+			}
+		});
+	}
+
 	async function requestLoadMore() {
 		const quote = await api.quoteListAll(rows.length + 1000);
 		setLoadQuote(quote.classA);
@@ -406,17 +515,7 @@ export function BrowserPage() {
 						onChange={(e) => setFilter(e.target.value)}
 					/>
 				</InputGroup>
-				<Button
-					variant="outline"
-					size="sm"
-					onClick={() => {
-						void objects.refetch().then((result) => {
-							if (result.error) {
-								fail(result.error, t('toast.refreshFailed'));
-							}
-						});
-					}}
-				>
+				<Button variant="outline" size="sm" onClick={refreshList}>
 					{objects.isFetching ? (
 						<Spinner data-icon="inline-start" />
 					) : (
@@ -431,13 +530,11 @@ export function BrowserPage() {
 				<Button
 					variant="outline"
 					size="sm"
-					disabled={selected.length === 0}
-					onClick={() => {
-						const key = selected[0];
-						if (key) {
-							void downloadOne(key);
-						}
-					}}
+					disabled={!caps.canDownload}
+					title={
+						selected.length > 0 && !caps.canDownload ? t('browser.downloadNoFolder') : undefined
+					}
+					onClick={() => void downloadSelection()}
 				>
 					<Download data-icon="inline-start" />
 					{t('common.download')}
@@ -461,31 +558,19 @@ export function BrowserPage() {
 					onSelectionChange={setSelection}
 					onOpen={openRow}
 					onPreview={(row) => {
-						if (profileId && bucket) {
-							setPreview({ profileId, bucket, key: row.key });
+						const key = row?.key ?? (caps.canPreview ? files[0] : undefined);
+						if (!key || !profileId || !bucket) {
+							return;
 						}
+						setPreview({ profileId, bucket, key });
 					}}
-					onDownload={(row) => void downloadOne(row.key)}
-					onRename={(row) => {
-						setRenameSrc(row?.key ?? selected[0] ?? '');
-						setRenameTo(row?.name ?? selected[0]?.split('/').pop() ?? '');
-						setRenameOpen(true);
-					}}
-					onCopy={(row) => {
-						const src = row?.key ?? selected[0] ?? '';
-						setCopySrc(src);
-						setCopyDest(joinKey(prefix, row?.name ?? src.split('/').pop() ?? ''));
-						setCopyOpen(true);
-					}}
-					onMove={(row) => {
-						setMoveKeys(lockedKeys(row));
-						setMovePrefix(prefix);
-						setMoveOpen(true);
-					}}
-					onDelete={(row) => {
-						setDeleteKeys(lockedKeys(row));
-						setConfirm('delete');
-					}}
+					onDownload={() => void downloadSelection()}
+					onRename={openRename}
+					onCopy={openCopy}
+					onMove={openMove}
+					onDelete={requestDelete}
+					onUpload={() => void upload()}
+					onRefresh={refreshList}
 				/>
 			</div>
 			<div className="flex h-9 shrink-0 items-center gap-3 border-t px-3 text-xs text-muted-foreground">
@@ -495,48 +580,22 @@ export function BrowserPage() {
 				<span>{t('common.selected', { count: selected.length })}</span>
 				{selected.length > 0 ? (
 					<div className="flex items-center gap-1">
-						<Button
-							size="xs"
-							variant="outline"
-							onClick={() => {
-								setRenameSrc(selected[0] ?? '');
-								setRenameTo(selected[0]?.split('/').pop() ?? '');
-								setRenameOpen(true);
-							}}
-						>
-							{t('common.rename')}
-						</Button>
-						<Button
-							size="xs"
-							variant="outline"
-							onClick={() => {
-								const src = selected[0] ?? '';
-								setCopySrc(src);
-								setCopyDest(joinKey(prefix, src.split('/').pop() ?? ''));
-								setCopyOpen(true);
-							}}
-						>
-							{t('common.copy')}
-						</Button>
-						<Button
-							size="xs"
-							variant="outline"
-							onClick={() => {
-								setMoveKeys(selected);
-								setMovePrefix(prefix);
-								setMoveOpen(true);
-							}}
-						>
-							{t('common.move')}
-						</Button>
-						<Button
-							size="xs"
-							variant="destructive"
-							onClick={() => {
-								setDeleteKeys(selected);
-								setConfirm('delete');
-							}}
-						>
+						{caps.canRename ? (
+							<Button size="xs" variant="outline" onClick={openRename}>
+								{t('common.rename')}
+							</Button>
+						) : null}
+						{caps.canCopy ? (
+							<Button size="xs" variant="outline" onClick={openCopy}>
+								{t('common.copy')}
+							</Button>
+						) : null}
+						{caps.canMove ? (
+							<Button size="xs" variant="outline" onClick={openMove}>
+								{t('common.move')}
+							</Button>
+						) : null}
+						<Button size="xs" variant="destructive" onClick={requestDelete}>
 							{t('common.delete')}
 						</Button>
 					</div>
@@ -703,7 +762,12 @@ export function BrowserPage() {
 						<AlertDialogTitle>{t('common.confirm')}</AlertDialogTitle>
 						<AlertDialogDescription>
 							{confirm === 'delete'
-								? t('common.confirmDelete')
+								? deletePrefixes.length > 0
+									? t('browser.confirmDeleteFolders', {
+											files: deleteFiles.length,
+											folders: deletePrefixes.length,
+										})
+									: t('common.confirmDelete')
 								: t('cost.quote', { count: loadQuote })}
 						</AlertDialogDescription>
 					</AlertDialogHeader>
@@ -711,10 +775,17 @@ export function BrowserPage() {
 						<AlertDialogCancel disabled={confirmBusy}>{t('common.cancel')}</AlertDialogCancel>
 						<AlertDialogAction
 							variant={confirm === 'delete' ? 'destructive' : 'default'}
-							disabled={confirmBusy}
+							disabled={
+								confirmBusy ||
+								(confirm === 'delete' && deleteFiles.length + deletePrefixes.length === 0)
+							}
 							onClick={(e) => {
 								e.preventDefault();
 								if (confirm === 'delete') {
+									if (deleteFiles.length + deletePrefixes.length === 0) {
+										setConfirm(null);
+										return;
+									}
 									del.mutate();
 									return;
 								}

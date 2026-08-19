@@ -116,7 +116,11 @@
 		"items": "{{count}} 项",
 		"emptyFolder": "这个前缀是空的",
 		"emptyFolderBody": "上传文件，或把本地文件拖进窗口。",
-		"truncated": "当前只加载了部分对象"
+		"truncated": "当前只加载了部分对象",
+		"needOneFile": "只能对单个文件使用",
+		"downloadNoFolder": "不能下载文件夹，请只选择文件",
+		"moveNoFolder": "不能移动文件夹",
+		"confirmDeleteFolders": "将删除 {{files}} 个文件和 {{folders}} 个文件夹。文件夹内的全部对象都会删除，列举这些对象会消耗 Class A 请求。此操作不可恢复。"
 	},
 	"command": {
 		"title": "命令面板",

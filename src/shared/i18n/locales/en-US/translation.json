@@ -116,7 +116,11 @@
 		"items": "{{count}} items",
 		"emptyFolder": "This prefix is empty",
 		"emptyFolderBody": "Upload files, or drag local files into the window.",
-		"truncated": "Only part of this listing is loaded"
+		"truncated": "Only part of this listing is loaded",
+		"needOneFile": "This works on a single file only",
+		"downloadNoFolder": "Folders cannot be downloaded. Select files only.",
+		"moveNoFolder": "Folders cannot be moved",
+		"confirmDeleteFolders": "This will delete {{files}} file(s) and {{folders}} folder(s). Everything under those folders will be deleted. Listing keys uses Class A requests. This cannot be undone."
 	},
 	"command": {
 		"title": "Command palette",

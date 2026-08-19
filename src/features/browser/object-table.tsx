@@ -23,10 +23,13 @@ import type { ObjectItem } from '@/entities/profile/types';
 import { cn } from '@/lib/utils';
 import { fileKind, formatBytes, formatModified } from '@/shared/lib/object-key';
 import {
+	contextActionKeys,
 	isSelected,
+	partitionSelected,
 	type Selection,
 	selectAll,
 	selectedCount,
+	selectionCaps,
 	selectRange,
 	toggleKey,
 } from '@/shared/lib/selection';
@@ -44,13 +47,25 @@ type Props = {
 	selection: Selection;
 	onSelectionChange: (next: Selection) => void;
 	onOpen: (row: ObjectItem) => void;
-	onPreview: (row: ObjectItem) => void;
-	onDownload: (row: ObjectItem) => void;
-	onRename: (row: ObjectItem | null) => void;
-	onCopy: (row: ObjectItem | null) => void;
-	onMove: (row: ObjectItem | null) => void;
-	onDelete: (row: ObjectItem | null) => void;
+	onPreview: (row?: ObjectItem) => void;
+	onDownload: () => void;
+	onRename: () => void;
+	onCopy: () => void;
+	onMove: () => void;
+	onDelete: () => void;
+	onUpload: () => void;
+	onRefresh: () => void;
 };
+
+export function objectFromEvent(target: EventTarget | null, rows: ObjectItem[]): ObjectItem | null {
+	const el =
+		target instanceof Element ? target : target instanceof Node ? target.parentElement : null;
+	const key = el?.closest('[data-object-key]')?.getAttribute('data-object-key');
+	if (!key) {
+		return null;
+	}
+	return rows.find((r) => r.key === key) ?? null;
+}
 
 function RowIcon({ row }: { row: ObjectItem }) {
 	if (row.isPrefix) {
@@ -90,6 +105,8 @@ export function ObjectTable({
 	onCopy,
 	onMove,
 	onDelete,
+	onUpload,
+	onRefresh,
 }: Props) {
 	const { t, i18n } = useTranslation();
 	const parentRef = useRef<HTMLDivElement>(null);
@@ -145,172 +162,210 @@ export function ObjectTable({
 	}
 
 	const target = ctxRow;
+	const caps = selectionCaps(
+		partitionSelected(rows, contextActionKeys(selection, keys, target?.key)),
+	);
 
 	return (
-		<ContextMenu>
-			<ContextMenuTrigger asChild>
-				<div className="flex h-full min-h-0 flex-col">
+		<div className="flex h-full min-h-0 flex-col">
+			<div
+				className={cn(
+					'grid h-8 shrink-0 items-center border-b bg-muted/40 px-2 text-xs text-muted-foreground',
+					COLS,
+				)}
+			>
+				<Checkbox
+					checked={headerChecked}
+					onCheckedChange={() =>
+						onSelectionChange(allChecked ? { mode: 'include', keys: new Set() } : selectAll())
+					}
+					aria-label={t('common.selected', { count: selectedN })}
+				/>
+				<span />
+				<button
+					type="button"
+					className="inline-flex items-center gap-1 text-left hover:text-foreground"
+					onClick={() => clickSort('name')}
+				>
+					{t('browser.colName')}
+					<SortMark active={sort === 'name'} desc={desc} />
+				</button>
+				<button
+					type="button"
+					className="inline-flex items-center justify-end gap-1 text-right hover:text-foreground disabled:opacity-40"
+					title={hasNextPage ? t('browser.sortDisabled') : undefined}
+					disabled={hasNextPage}
+					onClick={() => clickSort('size')}
+				>
+					{t('browser.colSize')}
+					<SortMark active={sort === 'size'} desc={desc} />
+				</button>
+				<button
+					type="button"
+					className="inline-flex items-center justify-end gap-1 text-right hover:text-foreground disabled:opacity-40"
+					title={hasNextPage ? t('browser.sortDisabled') : undefined}
+					disabled={hasNextPage}
+					onClick={() => clickSort('mtime')}
+				>
+					{t('browser.colModified')}
+					<SortMark active={sort === 'mtime'} desc={desc} />
+				</button>
+			</div>
+			<ContextMenu>
+				<ContextMenuTrigger asChild>
 					<div
-						className={cn(
-							'grid h-8 shrink-0 items-center border-b bg-muted/40 px-2 text-xs text-muted-foreground',
-							COLS,
-						)}
-					>
-						<Checkbox
-							checked={headerChecked}
-							onCheckedChange={() =>
-								onSelectionChange(allChecked ? { mode: 'include', keys: new Set() } : selectAll())
-							}
-							aria-label={t('common.selected', { count: selectedN })}
-						/>
-						<span />
-						<button
-							type="button"
-							className="inline-flex items-center gap-1 text-left hover:text-foreground"
-							onClick={() => clickSort('name')}
-						>
-							{t('browser.colName')}
-							<SortMark active={sort === 'name'} desc={desc} />
-						</button>
-						<button
-							type="button"
-							className="inline-flex items-center justify-end gap-1 text-right hover:text-foreground disabled:opacity-40"
-							title={hasNextPage ? t('browser.sortDisabled') : undefined}
-							disabled={hasNextPage}
-							onClick={() => clickSort('size')}
-						>
-							{t('browser.colSize')}
-							<SortMark active={sort === 'size'} desc={desc} />
-						</button>
-						<button
-							type="button"
-							className="inline-flex items-center justify-end gap-1 text-right hover:text-foreground disabled:opacity-40"
-							title={hasNextPage ? t('browser.sortDisabled') : undefined}
-							disabled={hasNextPage}
-							onClick={() => clickSort('mtime')}
-						>
-							{t('browser.colModified')}
-							<SortMark active={sort === 'mtime'} desc={desc} />
-						</button>
-					</div>
-					<div
-						ref={parentRef}
-						className="relative min-h-0 flex-1 overflow-auto scrollbar-gutter-stable"
+						className="relative min-h-0 flex-1"
 						onContextMenu={(e) => {
-							if (e.target === e.currentTarget) {
-								setCtxRow(null);
-							}
+							setCtxRow(objectFromEvent(e.target, sorted));
 						}}
 					>
-						<div style={{ height: virtualizer.getTotalSize(), position: 'relative' }}>
-							{virtualizer.getVirtualItems().map((v) => {
-								const row = sorted[v.index];
-								const selected = isSelected(selection, row.key);
-								return (
-									<div
-										key={row.key}
-										className={cn(
-											'absolute left-0 grid w-full cursor-default items-center px-2 text-[13px]',
-											COLS,
-											selected ? 'bg-primary/10' : 'hover:bg-muted/60',
-										)}
-										style={{ height: ROW, transform: `translateY(${v.start}px)` }}
-										onClick={(e) => {
-											if (e.detail > 1) {
-												return;
-											}
-											if (row.isPrefix) {
-												onOpen(row);
-												return;
-											}
-											onPreview(row);
-										}}
-										onDoubleClick={() => onOpen(row)}
-										onContextMenu={() => {
-											if (!selected) {
-												onSelectionChange({ mode: 'include', keys: new Set([row.key]) });
-											}
-											setCtxRow(row);
-										}}
-									>
-										<Checkbox
-											checked={selected}
-											onPointerDown={(e) => {
-												e.stopPropagation();
-												if (e.shiftKey) {
-													e.preventDefault();
-													onSelectionChange(selectRange(keys, anchor, v.index));
+						<div ref={parentRef} className="h-full overflow-auto scrollbar-gutter-stable">
+							<div style={{ height: virtualizer.getTotalSize(), position: 'relative' }}>
+								{virtualizer.getVirtualItems().map((v) => {
+									const row = sorted[v.index];
+									const selected = isSelected(selection, row.key);
+									return (
+										<div
+											key={row.key}
+											data-object-key={row.key}
+											className={cn(
+												'absolute left-0 grid w-full cursor-default items-center px-2 text-[13px]',
+												COLS,
+												selected ? 'bg-primary/10' : 'hover:bg-muted/60',
+											)}
+											style={{ height: ROW, transform: `translateY(${v.start}px)` }}
+											onClick={(e) => {
+												if (e.detail > 1) {
+													return;
+												}
+												if (row.isPrefix) {
+													onOpen(row);
+													return;
+												}
+												onPreview(row);
+											}}
+											onDoubleClick={() => onOpen(row)}
+											onContextMenu={() => {
+												if (!selected) {
+													onSelectionChange({ mode: 'include', keys: new Set([row.key]) });
 												}
 											}}
-											onClick={(e) => e.stopPropagation()}
-											onCheckedChange={() => {
-												setAnchor(v.index);
-												onSelectionChange(toggleKey(selection, row.key));
-											}}
-										/>
-										<RowIcon row={row} />
-										<span className="truncate" title={row.key}>
-											{row.name}
-										</span>
-										<span className="text-right tabular-nums text-muted-foreground">
-											{row.isPrefix ? t('browser.folder') : formatBytes(row.size)}
-										</span>
-										<span className="truncate text-right tabular-nums text-muted-foreground">
-											{formatModified(row.lastModified, i18n.language)}
-										</span>
-									</div>
-								);
-							})}
+										>
+											<Checkbox
+												checked={selected}
+												onPointerDown={(e) => {
+													e.stopPropagation();
+													if (e.shiftKey) {
+														e.preventDefault();
+														onSelectionChange(selectRange(keys, anchor, v.index));
+													}
+												}}
+												onClick={(e) => e.stopPropagation()}
+												onCheckedChange={() => {
+													setAnchor(v.index);
+													onSelectionChange(toggleKey(selection, row.key));
+												}}
+											/>
+											<RowIcon row={row} />
+											<span className="truncate" title={row.key}>
+												{row.name}
+											</span>
+											<span className="text-right tabular-nums text-muted-foreground">
+												{row.isPrefix ? t('browser.folder') : formatBytes(row.size)}
+											</span>
+											<span className="truncate text-right tabular-nums text-muted-foreground">
+												{formatModified(row.lastModified, i18n.language)}
+											</span>
+										</div>
+									);
+								})}
+							</div>
+							{loading ? (
+								<Empty className="absolute inset-0 border-0">
+									<EmptyHeader>
+										<EmptyMedia variant="icon">
+											<Spinner className="size-6" />
+										</EmptyMedia>
+										<EmptyTitle>{t('common.loading')}</EmptyTitle>
+									</EmptyHeader>
+								</Empty>
+							) : null}
+							{!loading && !error && sorted.length === 0 ? (
+								<Empty className="absolute inset-0 border-0">
+									<EmptyHeader>
+										<EmptyMedia variant="icon">
+											<Folder />
+										</EmptyMedia>
+										<EmptyTitle>{t('browser.emptyFolder')}</EmptyTitle>
+										<EmptyDescription>{t('browser.emptyFolderBody')}</EmptyDescription>
+									</EmptyHeader>
+								</Empty>
+							) : null}
 						</div>
-						{loading ? (
-							<Empty className="absolute inset-0 border-0">
-								<EmptyHeader>
-									<EmptyMedia variant="icon">
-										<Spinner className="size-6" />
-									</EmptyMedia>
-									<EmptyTitle>{t('common.loading')}</EmptyTitle>
-								</EmptyHeader>
-							</Empty>
-						) : null}
-						{!loading && !error && sorted.length === 0 ? (
-							<Empty className="absolute inset-0 border-0">
-								<EmptyHeader>
-									<EmptyMedia variant="icon">
-										<Folder />
-									</EmptyMedia>
-									<EmptyTitle>{t('browser.emptyFolder')}</EmptyTitle>
-									<EmptyDescription>{t('browser.emptyFolderBody')}</EmptyDescription>
-								</EmptyHeader>
-							</Empty>
-						) : null}
 					</div>
-				</div>
-			</ContextMenuTrigger>
-			<ContextMenuContent onCloseAutoFocus={(e) => e.preventDefault()}>
-				<ContextMenuGroup>
-					<ContextMenuItem
-						disabled={!target || target.isPrefix}
-						onSelect={() => target && onPreview(target)}
-					>
-						{t('common.preview')}
-					</ContextMenuItem>
-					<ContextMenuItem disabled={!target} onSelect={() => target && onDownload(target)}>
-						{t('common.download')}
-					</ContextMenuItem>
-				</ContextMenuGroup>
-				<ContextMenuSeparator />
-				<ContextMenuGroup>
-					<ContextMenuItem onSelect={() => onRename(target)}>{t('common.rename')}</ContextMenuItem>
-					<ContextMenuItem onSelect={() => onCopy(target)}>{t('common.copy')}</ContextMenuItem>
-					<ContextMenuItem onSelect={() => onMove(target)}>{t('common.move')}</ContextMenuItem>
-				</ContextMenuGroup>
-				<ContextMenuSeparator />
-				<ContextMenuGroup>
-					<ContextMenuItem variant="destructive" onSelect={() => onDelete(target)}>
-						{t('common.delete')}
-					</ContextMenuItem>
-				</ContextMenuGroup>
-			</ContextMenuContent>
-		</ContextMenu>
+				</ContextMenuTrigger>
+				<ContextMenuContent onCloseAutoFocus={(e) => e.preventDefault()}>
+					{target ? (
+						<>
+							<ContextMenuGroup>
+								<ContextMenuItem
+									disabled={!caps.canPreview}
+									title={caps.canPreview ? undefined : t('browser.needOneFile')}
+									onSelect={() => onPreview()}
+								>
+									{t('common.preview')}
+								</ContextMenuItem>
+								<ContextMenuItem
+									disabled={!caps.canDownload}
+									title={caps.canDownload ? undefined : t('browser.downloadNoFolder')}
+									onSelect={() => onDownload()}
+								>
+									{t('common.download')}
+								</ContextMenuItem>
+							</ContextMenuGroup>
+							<ContextMenuSeparator />
+							<ContextMenuGroup>
+								<ContextMenuItem
+									disabled={!caps.canRename}
+									title={caps.canRename ? undefined : t('browser.needOneFile')}
+									onSelect={() => onRename()}
+								>
+									{t('common.rename')}
+								</ContextMenuItem>
+								<ContextMenuItem
+									disabled={!caps.canCopy}
+									title={caps.canCopy ? undefined : t('browser.needOneFile')}
+									onSelect={() => onCopy()}
+								>
+									{t('common.copy')}
+								</ContextMenuItem>
+								<ContextMenuItem
+									disabled={!caps.canMove}
+									title={caps.canMove ? undefined : t('browser.moveNoFolder')}
+									onSelect={() => onMove()}
+								>
+									{t('common.move')}
+								</ContextMenuItem>
+							</ContextMenuGroup>
+							<ContextMenuSeparator />
+							<ContextMenuGroup>
+								<ContextMenuItem
+									variant="destructive"
+									disabled={!caps.canDelete}
+									onSelect={() => onDelete()}
+								>
+									{t('common.delete')}
+								</ContextMenuItem>
+							</ContextMenuGroup>
+						</>
+					) : (
+						<ContextMenuGroup>
+							<ContextMenuItem onSelect={() => onUpload()}>{t('common.upload')}</ContextMenuItem>
+							<ContextMenuItem onSelect={() => onRefresh()}>{t('common.refresh')}</ContextMenuItem>
+						</ContextMenuGroup>
+					)}
+				</ContextMenuContent>
+			</ContextMenu>
+		</div>
 	);
 }
