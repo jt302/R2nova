@@ -1,11 +1,4 @@
-import {
-	ArrowUpDown,
-	FolderOpen,
-	PanelLeft,
-	PanelLeftClose,
-	SlidersHorizontal,
-	Users,
-} from 'lucide-react';
+import { ArrowUpDown, FolderOpen, SlidersHorizontal, Users } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -36,10 +29,6 @@ export function ActivityRail({
 	const { t } = useTranslation();
 	const mainView = useNavStore((s) => s.mainView);
 	const setMainView = useNavStore((s) => s.setMainView);
-	const sidebarCollapsed = useNavStore((s) => s.sidebarCollapsed);
-	const setSidebarCollapsed = useNavStore((s) => s.setSidebarCollapsed);
-	const canToggleSidebar = mainView !== 'accounts' && mainView !== 'transfers';
-	const SidebarIcon = sidebarCollapsed ? PanelLeft : PanelLeftClose;
 
 	return (
 		<aside className="flex w-12 shrink-0 flex-col items-center gap-1 border-r bg-sidebar py-2 text-sidebar-foreground">
@@ -80,24 +69,6 @@ export function ActivityRail({
 					</Tooltip>
 				);
 			})}
-			{canToggleSidebar ? (
-				<Tooltip>
-					<TooltipTrigger asChild>
-						<Button
-							variant="ghost"
-							size="icon-sm"
-							aria-label={sidebarCollapsed ? t('nav.expandSidebar') : t('nav.collapseSidebar')}
-							aria-pressed={!sidebarCollapsed}
-							onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-						>
-							<SidebarIcon />
-						</Button>
-					</TooltipTrigger>
-					<TooltipContent side="right">
-						{sidebarCollapsed ? t('nav.expandSidebar') : t('nav.collapseSidebar')}
-					</TooltipContent>
-				</Tooltip>
-			) : null}
 			<div className="flex-1" />
 			<ProfileSwitcher compact onAdd={onAdd} onManage={() => setMainView('accounts')} />
 		</aside>

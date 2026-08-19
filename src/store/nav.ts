@@ -36,7 +36,6 @@ type NavState = {
 	theme: 'light' | 'dark' | 'system';
 	language: AppLanguage;
 	mainView: MainView;
-	sidebarCollapsed: boolean;
 	sidebarWidth: number;
 	previewSize: number;
 	downloadDir: string | null;
@@ -45,7 +44,6 @@ type NavState = {
 	setTheme: (theme: NavState['theme']) => void;
 	setLanguage: (language: AppLanguage) => void;
 	setMainView: (view: MainView) => void;
-	setSidebarCollapsed: (collapsed: boolean) => void;
 	setSidebarWidth: (width: number) => void;
 	setPreviewSize: (size: number) => void;
 	setDownloadDir: (dir: string | null) => void;
@@ -93,7 +91,6 @@ export const useNavStore = create<NavState>()(
 				theme: 'system',
 				language: initialLanguage(),
 				mainView: 'objects',
-				sidebarCollapsed: false,
 				sidebarWidth: initialSidebarWidth(),
 				previewSize: initialPreviewSize(),
 				downloadDir: null,
@@ -109,7 +106,6 @@ export const useNavStore = create<NavState>()(
 				setTheme: (theme) => set({ theme }),
 				setLanguage: (language) => set({ language }),
 				setMainView: (mainView) => set({ mainView }),
-				setSidebarCollapsed: (sidebarCollapsed) => set({ sidebarCollapsed }),
 				setSidebarWidth: (width) => set({ sidebarWidth: clampSidebarWidth(width) }),
 				setPreviewSize: (size) => set({ previewSize: clampPreviewSize(size) }),
 				setDownloadDir: (downloadDir) => set({ downloadDir }),
@@ -195,7 +191,6 @@ export const useNavStore = create<NavState>()(
 					...incoming,
 					language: parseLanguage(incoming.language) ?? current.language,
 					mainView: incoming.mainView ?? 'objects',
-					sidebarCollapsed: incoming.sidebarCollapsed ?? false,
 					sidebarWidth: clampSidebarWidth(incoming.sidebarWidth ?? current.sidebarWidth),
 					previewSize: clampPreviewSize(incoming.previewSize ?? current.previewSize),
 					downloadDir:
@@ -218,7 +213,6 @@ export const useNavStore = create<NavState>()(
 				theme: s.theme,
 				language: s.language,
 				mainView: s.mainView,
-				sidebarCollapsed: s.sidebarCollapsed,
 				sidebarWidth: s.sidebarWidth,
 				previewSize: s.previewSize,
 				downloadDir: s.downloadDir,

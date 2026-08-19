@@ -22,9 +22,7 @@
 		"accounts": "Accounts",
 		"browser": "Browser",
 		"newTab": "New tab",
-		"closeTab": "Close tab",
-		"collapseSidebar": "Collapse sidebar",
-		"expandSidebar": "Expand sidebar"
+		"closeTab": "Close tab"
 	},
 	"common": {
 		"save": "Save",

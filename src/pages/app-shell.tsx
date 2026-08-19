@@ -97,7 +97,6 @@ export function AppShell() {
 	const activeTabId = useNavStore((s) => s.activeTabId);
 	const back = useNavStore((s) => s.back);
 	const forward = useNavStore((s) => s.forward);
-	const sidebarCollapsed = useNavStore((s) => s.sidebarCollapsed);
 	const setPreview = useNavStore((s) => s.setPreview);
 	const transferConcurrency = useNavStore((s) => s.transferConcurrency);
 	const activeTab = useActiveTab();
@@ -197,8 +196,7 @@ export function AppShell() {
 		setFormOpen(true);
 	}
 
-	const showSidebar =
-		Boolean(profileId) && mainView !== 'accounts' && mainView !== 'transfers' && !sidebarCollapsed;
+	const showSidebar = Boolean(profileId) && mainView !== 'accounts' && mainView !== 'transfers';
 	const preview = activeTab.preview;
 	const showPreview = Boolean(preview) && mainView === 'objects';
 

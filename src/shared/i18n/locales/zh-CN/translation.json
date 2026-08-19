@@ -22,9 +22,7 @@
 		"accounts": "账号",
 		"browser": "浏览器",
 		"newTab": "新标签",
-		"closeTab": "关闭标签",
-		"collapseSidebar": "收起侧栏",
-		"expandSidebar": "展开侧栏"
+		"closeTab": "关闭标签"
 	},
 	"common": {
 		"save": "保存",
