@@ -119,7 +119,7 @@ export function TransferPage() {
 							</label>
 							{downloadDir ? (
 								<span
-									className="max-w-52 truncate text-xs text-muted-foreground"
+									className="max-w-52 truncate text-xs text-muted-foreground select-text"
 									title={downloadDir}
 								>
 									{downloadDir}
@@ -225,7 +225,7 @@ function TransferRow({ item, onDismiss }: { item: QueueItem; onDismiss: () => vo
 			style={{ height: ROW }}
 		>
 			<Icon className="size-3.5 text-muted-foreground" />
-			<span className="truncate" title={item.key}>
+			<span className="truncate select-text" title={item.key}>
 				{item.key}
 			</span>
 			<span className="truncate text-muted-foreground" title={item.bucket}>
@@ -234,7 +234,7 @@ function TransferRow({ item, onDismiss }: { item: QueueItem; onDismiss: () => vo
 			{item.path ? (
 				<button
 					type="button"
-					className="truncate text-left text-muted-foreground hover:text-foreground"
+					className="truncate text-left text-muted-foreground select-text hover:text-foreground"
 					title={item.path}
 					onClick={() => {
 						void api.revealItem(item.path ?? '').catch(() => undefined);
@@ -266,7 +266,7 @@ function TransferRow({ item, onDismiss }: { item: QueueItem; onDismiss: () => vo
 			>
 				{t(`transfer.status.${item.status}`)}
 			</span>
-			<span className="truncate text-muted-foreground" title={item.message}>
+			<span className="truncate text-muted-foreground select-text" title={item.message}>
 				{item.message ?? ''}
 			</span>
 			<div className="flex items-center justify-end">

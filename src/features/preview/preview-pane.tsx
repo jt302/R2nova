@@ -158,7 +158,7 @@ export function PreviewPane({ target, onClose }: { target: PreviewTarget; onClos
 		<div className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden bg-card contain-inline-size">
 			<div className="flex h-12 shrink-0 items-center gap-2 border-b px-3">
 				<div className="min-w-0 flex-1">
-					<p className="truncate text-sm font-medium" title={name}>
+					<p className="truncate text-sm font-medium select-text" title={name}>
 						{name}
 					</p>
 					<div className="mt-0.5 flex items-center gap-2">
