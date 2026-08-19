@@ -1,27 +1,23 @@
 import { create } from 'zustand';
+import type { QueueItem } from '@/shared/lib/transfer-queue';
 
-export type LiveTransfer = {
-	id: string;
-	key: string;
-	bytesDone: number;
-	bytesTotal: number;
-	status: 'running' | 'finished' | 'failed';
-	message?: string;
-};
+export type LiveTransfer = QueueItem;
 
 type TransferState = {
 	items: Record<string, LiveTransfer>;
+	dismissed: Record<string, true>;
 	upsert: (item: LiveTransfer) => void;
-	remove: (id: string) => void;
+	dismiss: (id: string) => void;
 };
 
 export const useTransferStore = create<TransferState>((set) => ({
 	items: {},
+	dismissed: {},
 	upsert: (item) => set((s) => ({ items: { ...s.items, [item.id]: item } })),
-	remove: (id) =>
+	dismiss: (id) =>
 		set((s) => {
 			const items = { ...s.items };
 			delete items[id];
-			return { items };
+			return { items, dismissed: { ...s.dismissed, [id]: true } };
 		}),
 }));

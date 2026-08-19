@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import {
+	ArrowUpDown,
 	FolderOpen,
 	HardDrive,
 	Languages,
@@ -26,11 +27,9 @@ import { useNavStore } from '@/store/nav';
 export function CommandPalette({
 	open,
 	onOpenChange,
-	onTransfers,
 }: {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
-	onTransfers?: () => void;
 }) {
 	const { t } = useTranslation();
 	const profileId = useNavStore((s) => s.profileId);
@@ -105,10 +104,11 @@ export function CommandPalette({
 					<CommandItem
 						value="transfers"
 						onSelect={() => {
-							onTransfers?.();
+							setMainView('transfers');
 							onOpenChange(false);
 						}}
 					>
+						<ArrowUpDown />
 						{t('command.transfers')}
 					</CommandItem>
 					<CommandItem

@@ -15,25 +15,22 @@ import { ProfileSwitcher } from '@/widgets/profile-switcher';
 
 type RailItem = {
 	view: MainView;
-	labelKey: 'nav.objects' | 'nav.settings' | 'nav.accounts';
+	labelKey: 'nav.objects' | 'nav.transfers' | 'nav.settings' | 'nav.accounts';
 	icon: typeof FolderOpen;
 };
 
 const ITEMS: RailItem[] = [
 	{ view: 'objects', labelKey: 'nav.objects', icon: FolderOpen },
+	{ view: 'transfers', labelKey: 'nav.transfers', icon: ArrowUpDown },
 	{ view: 'settings', labelKey: 'nav.settings', icon: SlidersHorizontal },
 	{ view: 'accounts', labelKey: 'nav.accounts', icon: Users },
 ];
 
 export function ActivityRail({
 	transferCount,
-	transfersOpen,
-	onTransfers,
 	onAdd,
 }: {
 	transferCount: number;
-	transfersOpen: boolean;
-	onTransfers: () => void;
 	onAdd: () => void;
 }) {
 	const { t } = useTranslation();
@@ -41,7 +38,7 @@ export function ActivityRail({
 	const setMainView = useNavStore((s) => s.setMainView);
 	const sidebarCollapsed = useNavStore((s) => s.sidebarCollapsed);
 	const setSidebarCollapsed = useNavStore((s) => s.setSidebarCollapsed);
-	const canToggleSidebar = mainView !== 'accounts';
+	const canToggleSidebar = mainView !== 'accounts' && mainView !== 'transfers';
 	const SidebarIcon = sidebarCollapsed ? PanelLeft : PanelLeftClose;
 
 	return (
@@ -52,13 +49,17 @@ export function ActivityRail({
 			{ITEMS.map((item) => {
 				const Icon = item.icon;
 				const active = mainView === item.view;
+				const label =
+					item.view === 'transfers' && transferCount > 0
+						? t('transfer.active', { count: transferCount })
+						: t(item.labelKey);
 				return (
 					<Tooltip key={item.view}>
 						<TooltipTrigger asChild>
 							<Button
 								variant="ghost"
 								size="icon-sm"
-								aria-label={t(item.labelKey)}
+								aria-label={label}
 								aria-current={active ? 'page' : undefined}
 								className={cn(
 									'relative',
@@ -70,9 +71,12 @@ export function ActivityRail({
 								{active ? (
 									<span className="absolute inset-y-1.5 left-0 w-0.5 rounded-full bg-primary" />
 								) : null}
+								{item.view === 'transfers' && transferCount > 0 ? (
+									<span className="absolute top-0.5 right-0.5 size-1.5 rounded-full bg-primary" />
+								) : null}
 							</Button>
 						</TooltipTrigger>
-						<TooltipContent side="right">{t(item.labelKey)}</TooltipContent>
+						<TooltipContent side="right">{label}</TooltipContent>
 					</Tooltip>
 				);
 			})}
@@ -95,26 +99,6 @@ export function ActivityRail({
 				</Tooltip>
 			) : null}
 			<div className="flex-1" />
-			<Tooltip>
-				<TooltipTrigger asChild>
-					<Button
-						variant="ghost"
-						size="icon-sm"
-						aria-label={t('nav.transfers')}
-						aria-pressed={transfersOpen}
-						className={cn('relative', transfersOpen && 'bg-sidebar-accent')}
-						onClick={onTransfers}
-					>
-						<ArrowUpDown />
-						{transferCount > 0 ? (
-							<span className="absolute top-0.5 right-0.5 size-1.5 rounded-full bg-primary" />
-						) : null}
-					</Button>
-				</TooltipTrigger>
-				<TooltipContent side="right">
-					{transferCount > 0 ? t('transfer.active', { count: transferCount }) : t('nav.transfers')}
-				</TooltipContent>
-			</Tooltip>
 			<ProfileSwitcher compact onAdd={onAdd} onManage={() => setMainView('accounts')} />
 		</aside>
 	);

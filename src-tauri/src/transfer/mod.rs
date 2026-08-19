@@ -29,6 +29,7 @@ pub enum TransferEvent {
 		transfer_id: String,
 		key: String,
 		bytes_total: u64,
+		direction: TransferDirection,
 	},
 	Progress {
 		transfer_id: String,
@@ -134,6 +135,7 @@ impl TransferEngine {
 			transfer_id: id.clone(),
 			key: key.to_string(),
 			bytes_total: size,
+			direction: TransferDirection::Upload,
 		});
 
 		let result = if should_multipart(size) {
@@ -416,6 +418,7 @@ impl TransferEngine {
 			transfer_id: id.clone(),
 			key: key.to_string(),
 			bytes_total: total,
+			direction: TransferDirection::Download,
 		});
 		if let Some(parent) = dest.parent() {
 			tokio::fs::create_dir_all(parent).await?;
@@ -556,5 +559,19 @@ mod tests {
 		assert_eq!(json["data"]["bytesDone"], 10);
 		assert_eq!(json["data"]["bytesTotal"], 20);
 		assert!(json["data"].get("bytes_done").is_none());
+	}
+
+	#[test]
+	fn started_event_includes_direction() {
+		let json = serde_json::to_value(TransferEvent::Started {
+			transfer_id: "t1".into(),
+			key: "a.bin".into(),
+			bytes_total: 10,
+			direction: crate::models::TransferDirection::Download,
+		})
+		.unwrap();
+		assert_eq!(json["event"], "started");
+		assert_eq!(json["data"]["direction"], "download");
+		assert_eq!(json["data"]["bytesTotal"], 10);
 	}
 }

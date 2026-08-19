@@ -40,7 +40,6 @@ import {
 } from '@/components/ui/item';
 import { Kbd, KbdGroup } from '@/components/ui/kbd';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
-import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import type { Profile } from '@/entities/profile/types';
 import { BrowserPage } from '@/features/browser/browser-page';
@@ -49,7 +48,7 @@ import { ControlPanel } from '@/features/control/control-panel';
 import { PreviewPane } from '@/features/preview/preview-pane';
 import { AccountsPage, InvalidAccountState } from '@/features/profile/accounts-page';
 import { ProfileFormDialog } from '@/features/profile/profile-form-dialog';
-import { QueuePanel, useActiveTransferCount } from '@/features/transfer/queue-panel';
+import { TransferPage, useActiveTransferCount } from '@/features/transfer/transfer-page';
 import { api } from '@/shared/api/backend';
 import { queryKeys } from '@/shared/config/query-keys';
 import { SIDEBAR_MAX_PX, SIDEBAR_MIN_PX } from '@/shared/lib/prefs';
@@ -101,7 +100,6 @@ export function AppShell() {
 	const sidebarCollapsed = useNavStore((s) => s.sidebarCollapsed);
 	const setPreview = useNavStore((s) => s.setPreview);
 	const activeTab = useActiveTab();
-	const [transfersOpen, setTransfersOpen] = useState(false);
 	const [commandOpen, setCommandOpen] = useState(false);
 	const [formOpen, setFormOpen] = useState(false);
 	const [editing, setEditing] = useState<Profile | null>(null);
@@ -165,6 +163,10 @@ export function AppShell() {
 				e.preventDefault();
 				setMainView('accounts');
 			}
+			if (key === '4') {
+				e.preventDefault();
+				setMainView('transfers');
+			}
 		};
 		window.addEventListener('keydown', onKey);
 		return () => window.removeEventListener('keydown', onKey);
@@ -190,7 +192,8 @@ export function AppShell() {
 		setFormOpen(true);
 	}
 
-	const showSidebar = Boolean(profileId) && mainView !== 'accounts' && !sidebarCollapsed;
+	const showSidebar =
+		Boolean(profileId) && mainView !== 'accounts' && mainView !== 'transfers' && !sidebarCollapsed;
 	const preview = activeTab.preview;
 	const showPreview = Boolean(preview) && mainView === 'objects';
 
@@ -289,15 +292,12 @@ export function AppShell() {
 				<AboutDialog version={version} latest={latest} />
 			</header>
 			<div className="flex min-h-0 flex-1">
-				<ActivityRail
-					transferCount={transferCount}
-					transfersOpen={transfersOpen}
-					onTransfers={() => setTransfersOpen((v) => !v)}
-					onAdd={openAdd}
-				/>
+				<ActivityRail transferCount={transferCount} onAdd={openAdd} />
 				<main className="flex min-h-0 min-w-0 flex-1">
 					{mainView === 'accounts' ? (
 						<AccountsPage onAdd={openAdd} onEdit={openEdit} />
+					) : mainView === 'transfers' ? (
+						<TransferPage />
 					) : !profileId ? (
 						<Onboarding onAdd={openAdd} />
 					) : (
@@ -379,37 +379,18 @@ export function AppShell() {
 					)}
 				</main>
 			</div>
-			{transfersOpen ? (
-				<div className="flex h-56 shrink-0 flex-col border-t bg-card">
-					<div className="flex h-10 shrink-0 items-center gap-2 px-4">
-						<p className="text-sm font-medium">{t('transfer.queue')}</p>
-						<div className="flex-1" />
-						<Button variant="ghost" size="xs" onClick={() => setTransfersOpen(false)}>
-							{t('common.close')}
-						</Button>
-					</div>
-					<Separator />
-					<div className="min-h-0 flex-1 overflow-auto">
-						<QueuePanel />
-					</div>
-				</div>
-			) : null}
 			<footer className="flex h-9 shrink-0 items-center gap-3 border-t bg-titlebar px-3">
 				<CostBar />
 				<Button
 					className="ml-auto"
 					variant="ghost"
 					size="sm"
-					onClick={() => setTransfersOpen((v) => !v)}
+					onClick={() => setMainView(mainView === 'transfers' ? 'objects' : 'transfers')}
 				>
 					{transferCount > 0 ? t('transfer.active', { count: transferCount }) : t('transfer.idle')}
 				</Button>
 			</footer>
-			<CommandPalette
-				open={commandOpen}
-				onOpenChange={setCommandOpen}
-				onTransfers={() => setTransfersOpen(true)}
-			/>
+			<CommandPalette open={commandOpen} onOpenChange={setCommandOpen} />
 			<ProfileFormDialog open={formOpen} onOpenChange={setFormOpen} profile={editing} />
 		</div>
 	);

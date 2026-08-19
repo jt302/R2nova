@@ -80,7 +80,15 @@ export type PresignResult = {
 };
 
 export type TransferEvent =
-	| { event: 'started'; data: { transferId: string; key: string; bytesTotal: number } }
+	| {
+			event: 'started';
+			data: {
+				transferId: string;
+				key: string;
+				bytesTotal: number;
+				direction: TransferProgress['direction'];
+			};
+	  }
 	| { event: 'progress'; data: { transferId: string; bytesDone: number; bytesTotal: number } }
 	| { event: 'finished'; data: { transferId: string } }
 	| { event: 'failed'; data: { transferId: string; message: string } };

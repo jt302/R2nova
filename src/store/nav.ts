@@ -16,7 +16,7 @@ import {
 } from '@/shared/lib/preview';
 
 export type Location = { bucket: string; prefix: string };
-export type MainView = 'objects' | 'settings' | 'accounts';
+export type MainView = 'objects' | 'transfers' | 'settings' | 'accounts';
 export type { AppLanguage, PreviewTarget };
 
 export type Tab = {
