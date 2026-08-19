@@ -85,10 +85,17 @@ function AdvancedJson({
 					variant="outline"
 					className="self-start"
 					onClick={async () => {
+						let value: unknown;
 						try {
-							await onSave(parseJson(text));
+							value = parseJson(text);
 						} catch {
 							toast.error(t('control.jsonInvalid'));
+							return;
+						}
+						try {
+							await onSave(value);
+						} catch (err) {
+							toast.error(isAppError(err) ? err.message : String(err));
 						}
 					}}
 				>
@@ -180,7 +187,7 @@ export function ControlPanel() {
 		onSuccess: () => {
 			void qc.invalidateQueries({ queryKey: queryKeys.buckets(profileId ?? '') });
 			go({ bucket: newBucket.trim(), prefix: '' });
-			toast.success(t('control.createBucket'));
+			toast.success(t('toast.bucketCreated', { name: newBucket.trim() }));
 			setNewBucket('');
 		},
 		onError: fail,
@@ -192,7 +199,7 @@ export function ControlPanel() {
 			void qc.invalidateQueries({ queryKey: queryKeys.buckets(profileId ?? '') });
 			go({ bucket: '', prefix: '' });
 			setDeleteOpen(false);
-			toast.success(t('control.deleteBucket'));
+			toast.success(t('toast.bucketDeleted', { name: bucket }));
 		},
 		onError: fail,
 	});
@@ -317,15 +324,20 @@ export function ControlPanel() {
 															if (!profileId) {
 																return;
 															}
-															await api.abortMultipart({
-																profileId,
-																bucket,
-																key: u.key,
-																uploadId: u.uploadId,
-															});
-															void qc.invalidateQueries({
-																queryKey: queryKeys.multipart(profileId, bucket),
-															});
+															try {
+																await api.abortMultipart({
+																	profileId,
+																	bucket,
+																	key: u.key,
+																	uploadId: u.uploadId,
+																});
+																void qc.invalidateQueries({
+																	queryKey: queryKeys.multipart(profileId, bucket),
+																});
+																toast.success(t('toast.multipartAborted'));
+															} catch (err) {
+																fail(err);
+															}
 														}}
 													>
 														{t('control.abort')}
@@ -478,7 +490,7 @@ export function ControlPanel() {
 										}
 										try {
 											await api.cfPutCors(profileId, bucket, corsToPayload(corsRules));
-											toast.success(t('common.save'));
+											toast.success(t('toast.saved', { what: t('control.cors') }));
 										} catch (err) {
 											fail(err);
 										}
@@ -495,7 +507,7 @@ export function ControlPanel() {
 											return;
 										}
 										await api.cfPutCors(profileId, bucket, value);
-										toast.success(t('common.save'));
+										toast.success(t('toast.saved', { what: t('control.cors') }));
 									}}
 								/>
 							</CardContent>
@@ -573,7 +585,7 @@ export function ControlPanel() {
 										}
 										try {
 											await api.cfPutLifecycle(profileId, bucket, lifecycleToPayload(lifeRules));
-											toast.success(t('common.save'));
+											toast.success(t('toast.saved', { what: t('control.lifecycle') }));
 										} catch (err) {
 											fail(err);
 										}
@@ -590,7 +602,7 @@ export function ControlPanel() {
 											return;
 										}
 										await api.cfPutLifecycle(profileId, bucket, value);
-										toast.success(t('common.save'));
+										toast.success(t('toast.saved', { what: t('control.lifecycle') }));
 									}}
 								/>
 							</CardContent>
@@ -628,7 +640,7 @@ export function ControlPanel() {
 											return;
 										}
 										await api.cfPutLock(profileId, bucket, value);
-										toast.success(t('common.save'));
+										toast.success(t('toast.saved', { what: t('control.lock') }));
 									}}
 								/>
 							</CardContent>
@@ -650,7 +662,7 @@ export function ControlPanel() {
 											return;
 										}
 										await api.cfPutEvents(profileId, bucket, value);
-										toast.success(t('common.save'));
+										toast.success(t('toast.saved', { what: t('control.events') }));
 									}}
 								/>
 							</CardContent>

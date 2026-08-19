@@ -62,7 +62,7 @@ export function BucketSidebar({ onAdd, onManage }: { onAdd: () => void; onManage
 		onSuccess: () => {
 			void qc.invalidateQueries({ queryKey: queryKeys.buckets(profileId ?? '') });
 			go({ bucket: newName.trim(), prefix: '' });
-			toast.success(t('control.createBucket'));
+			toast.success(t('toast.bucketCreated', { name: newName.trim() }));
 			setCreateOpen(false);
 			setNewName('');
 		},

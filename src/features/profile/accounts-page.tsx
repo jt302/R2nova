@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import type { TFunction } from 'i18next';
 import { KeyRound, MoreHorizontal, Plus, ShieldAlert } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -54,9 +55,13 @@ function keyPrefix(value: string): string {
 	return value.length <= 8 ? value : `${value.slice(0, 8)}…`;
 }
 
-export function toastProbeResult(t: (key: string) => string, profile: Profile) {
+export function toastProbeResult(t: TFunction, profile: Profile, kind: 'save' | 'probe' = 'probe') {
 	if (profile.capability === 'admin' || profile.capability === 'object') {
-		toast.success(t(`profile.capability.${profile.capability}`));
+		toast.success(
+			t(kind === 'save' ? 'toast.accountSaved' : 'toast.probeOk', {
+				capability: t(`profile.capability.${profile.capability}`),
+			}),
+		);
 		return;
 	}
 	toast.error(profile.lastError || t('profile.invalidHint'));
@@ -98,6 +103,7 @@ export function AccountsPage({
 				setProfileId(next?.id ?? null);
 			}
 			setPendingDelete(null);
+			toast.success(t('toast.accountDeleted'));
 		},
 		onError: (err) => toast.error(isAppError(err) ? err.message : String(err)),
 	});

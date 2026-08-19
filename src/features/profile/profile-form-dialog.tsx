@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import {
 	Dialog,
@@ -101,9 +102,10 @@ export function ProfileFormDialog({
 			void qc.invalidateQueries({ queryKey: queryKeys.profiles });
 			void qc.invalidateQueries({ queryKey: queryKeys.buckets(p.id) });
 			setProfileId(p.id);
-			toastProbeResult(t, p);
+			toastProbeResult(t, p, 'save');
 			onOpenChange(false);
 		},
+		onError: (err) => toast.error(isAppError(err) ? err.message : String(err)),
 	});
 
 	const canSave =

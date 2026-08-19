@@ -121,8 +121,7 @@ export function BrowserPage() {
 						paths: event.payload.paths,
 						onEvent: createTransferChannel(),
 					})
-					.then(() => toast.success(t('common.upload')))
-					.catch((err) => toast.error(isAppError(err) ? err.message : String(err)));
+					.catch((err) => toast.error(isAppError(err) ? err.message : t('toast.uploadFailed')));
 			});
 		})();
 		return () => unlisten?.();
@@ -168,17 +167,18 @@ export function BrowserPage() {
 		void qc.invalidateQueries({ queryKey: queryKeys.cost });
 	};
 
-	const fail = (err: unknown) => toast.error(isAppError(err) ? err.message : String(err));
+	const fail = (err: unknown, fallback?: string) =>
+		toast.error(isAppError(err) ? err.message : (fallback ?? String(err)));
 
 	const del = useMutation({
 		mutationFn: () => api.deleteObjects({ profileId: profileId ?? '', bucket, keys: deleteKeys }),
 		onSuccess: (n) => {
-			toast.success(`${t('common.delete')} ${n}`);
+			toast.success(t('toast.deleted', { count: n }));
 			invalidate();
 			setSelection(clearSelection());
 			setConfirm(null);
 		},
-		onError: fail,
+		onError: (err) => fail(err),
 	});
 
 	const rename = useMutation({
@@ -190,11 +190,11 @@ export function BrowserPage() {
 				dstKey: joinKey(prefix, renameTo),
 			}),
 		onSuccess: () => {
-			toast.success(t('common.rename'));
+			toast.success(t('toast.renamed', { name: renameTo }));
 			setRenameOpen(false);
 			invalidate();
 		},
-		onError: fail,
+		onError: (err) => fail(err),
 	});
 
 	const copy = useMutation({
@@ -211,11 +211,11 @@ export function BrowserPage() {
 			});
 		},
 		onSuccess: () => {
-			toast.success(t('common.copy'));
+			toast.success(t('toast.copiedTo', { dest: copyDest }));
 			setCopyOpen(false);
 			invalidate();
 		},
-		onError: fail,
+		onError: (err) => fail(err),
 	});
 
 	const move = useMutation({
@@ -227,11 +227,11 @@ export function BrowserPage() {
 				dstPrefix: movePrefix,
 			}),
 		onSuccess: () => {
-			toast.success(t('common.move'));
+			toast.success(t('toast.moved', { count: moveKeys.length }));
 			setMoveOpen(false);
 			invalidate();
 		},
-		onError: fail,
+		onError: (err) => fail(err),
 	});
 
 	const confirmBusy = confirm === 'delete' ? del.isPending : objects.isFetchingNextPage;
@@ -255,14 +255,18 @@ export function BrowserPage() {
 		if (paths.length === 0) {
 			return;
 		}
-		await api.uploadPaths({
-			profileId,
-			bucket,
-			prefix,
-			paths,
-			onEvent: createTransferChannel(),
-		});
-		invalidate();
+		try {
+			await api.uploadPaths({
+				profileId,
+				bucket,
+				prefix,
+				paths,
+				onEvent: createTransferChannel(),
+			});
+			invalidate();
+		} catch (err) {
+			fail(err, t('toast.uploadFailed'));
+		}
 	}
 
 	async function downloadOne(key: string) {
@@ -273,13 +277,17 @@ export function BrowserPage() {
 		if (!dest) {
 			return;
 		}
-		await api.downloadObject({
-			profileId,
-			bucket,
-			key,
-			dest,
-			onEvent: createTransferChannel(),
-		});
+		try {
+			await api.downloadObject({
+				profileId,
+				bucket,
+				key,
+				dest,
+				onEvent: createTransferChannel(),
+			});
+		} catch (err) {
+			fail(err, t('toast.downloadFailed'));
+		}
 	}
 
 	async function requestLoadMore() {
@@ -398,7 +406,17 @@ export function BrowserPage() {
 						onChange={(e) => setFilter(e.target.value)}
 					/>
 				</InputGroup>
-				<Button variant="outline" size="sm" onClick={() => void objects.refetch()}>
+				<Button
+					variant="outline"
+					size="sm"
+					onClick={() => {
+						void objects.refetch().then((result) => {
+							if (result.error) {
+								fail(result.error, t('toast.refreshFailed'));
+							}
+						});
+					}}
+				>
 					{objects.isFetching ? (
 						<Spinner data-icon="inline-start" />
 					) : (
@@ -426,6 +444,14 @@ export function BrowserPage() {
 				</Button>
 			</div>
 			<div className="min-h-0 flex-1">
+				{objects.isError ? (
+					<Alert className="m-3">
+						<AlertTitle>{t('toast.listFailed')}</AlertTitle>
+						<AlertDescription>
+							{isAppError(objects.error) ? objects.error.message : t('toast.listFailed')}
+						</AlertDescription>
+					</Alert>
+				) : null}
 				<ObjectTable
 					rows={rows}
 					hasNextPage={hasNextPage}

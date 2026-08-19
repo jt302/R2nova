@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { ArrowDownToLine, ArrowUpFromLine, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -21,6 +22,7 @@ import {
 } from '@/components/ui/item';
 import { Progress } from '@/components/ui/progress';
 import { api } from '@/shared/api/backend';
+import { isAppError } from '@/shared/api/tauri-invoke';
 import { queryKeys } from '@/shared/config/query-keys';
 import { formatBytes } from '@/shared/lib/object-key';
 import { useTransferStore } from '@/store/transfer';
@@ -109,7 +111,11 @@ export function QueuePanel() {
 								variant="ghost"
 								size="icon-xs"
 								aria-label={t('common.cancel')}
-								onClick={() => void api.cancelTransfer(item.id)}
+								onClick={() => {
+									void api.cancelTransfer(item.id).catch((err) => {
+										toast.error(isAppError(err) ? err.message : t('toast.transferCancelFailed'));
+									});
+								}}
 							>
 								<X />
 							</Button>
