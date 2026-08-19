@@ -455,6 +455,8 @@ export function BrowserPage() {
 				<ObjectTable
 					rows={rows}
 					hasNextPage={hasNextPage}
+					loading={objects.isLoading}
+					error={objects.isError}
 					selection={selection}
 					onSelectionChange={setSelection}
 					onOpen={openRow}
@@ -487,7 +489,9 @@ export function BrowserPage() {
 				/>
 			</div>
 			<div className="flex h-9 shrink-0 items-center gap-3 border-t px-3 text-xs text-muted-foreground">
-				<span>{t('browser.items', { count: rows.length })}</span>
+				<span>
+					{objects.isLoading ? t('common.loading') : t('browser.items', { count: rows.length })}
+				</span>
 				<span>{t('common.selected', { count: selected.length })}</span>
 				{selected.length > 0 ? (
 					<div className="flex items-center gap-1">

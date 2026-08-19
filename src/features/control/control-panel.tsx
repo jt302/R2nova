@@ -31,6 +31,7 @@ import {
 } from '@/components/ui/empty';
 import { Field, FieldGroup, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Spinner } from '@/components/ui/spinner';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -113,7 +114,7 @@ export function ControlPanel() {
 	const go = useNavStore((s) => s.go);
 	const loc = useCurrentLocation();
 	const bucket = loc.bucket;
-	const { data: profiles = [] } = useQuery({
+	const { data: profiles = [], isLoading: profilesLoading } = useQuery({
 		queryKey: queryKeys.profiles,
 		queryFn: api.listProfiles,
 	});
@@ -168,14 +169,10 @@ export function ControlPanel() {
 	});
 
 	useEffect(() => {
-		if (cors.data) {
-			setCorsRules(parseCorsRules(cors.data));
-		}
+		setCorsRules(parseCorsRules(cors.data ?? null));
 	}, [cors.data]);
 	useEffect(() => {
-		if (life.data) {
-			setLifeRules(parseLifecycleRules(life.data));
-		}
+		setLifeRules(parseLifecycleRules(life.data ?? null));
 	}, [life.data]);
 
 	function fail(err: unknown) {
@@ -203,6 +200,18 @@ export function ControlPanel() {
 		},
 		onError: fail,
 	});
+
+	if (profilesLoading) {
+		return (
+			<div className="h-full min-h-0 w-full overflow-y-auto scrollbar-gutter-stable">
+				<div className="mx-auto flex w-full max-w-3xl flex-col gap-4 p-8">
+					<Skeleton className="h-8 w-48" />
+					<Skeleton className="h-32 w-full" />
+					<Skeleton className="h-32 w-full" />
+				</div>
+			</div>
+		);
+	}
 
 	if (!admin) {
 		return (
@@ -277,7 +286,9 @@ export function ControlPanel() {
 								<CardDescription>{t('control.metricsDesc')}</CardDescription>
 							</CardHeader>
 							<CardContent>
-								{metricsList.length === 0 ? (
+								{metrics.isLoading ? (
+									<p className="text-sm text-muted-foreground">{t('common.loading')}</p>
+								) : metricsList.length === 0 ? (
 									<p className="text-sm text-muted-foreground">{t('common.empty')}</p>
 								) : (
 									<dl className="grid grid-cols-2 gap-3">
@@ -309,7 +320,9 @@ export function ControlPanel() {
 									<CardDescription>{t('control.multipartDesc')}</CardDescription>
 								</CardHeader>
 								<CardContent>
-									{(multipart.data ?? []).length === 0 ? (
+									{multipart.isLoading ? (
+										<p className="text-sm text-muted-foreground">{t('common.loading')}</p>
+									) : (multipart.data ?? []).length === 0 ? (
 										<p className="text-sm text-muted-foreground">{t('control.noUploads')}</p>
 									) : (
 										<div className="flex flex-col gap-2">
@@ -359,7 +372,8 @@ export function ControlPanel() {
 								<CardAction>
 									<Switch
 										id="dev-url"
-										checked={devParsed.enabled}
+										checked={!dev.isLoading && devParsed.enabled}
+										disabled={dev.isLoading}
 										onCheckedChange={async (on) => {
 											if (!profileId) {
 												return;
@@ -392,7 +406,9 @@ export function ControlPanel() {
 								<CardDescription>{t('control.domainsDesc')}</CardDescription>
 							</CardHeader>
 							<CardContent>
-								{domainList.length === 0 ? (
+								{domains.isLoading ? (
+									<p className="text-sm text-muted-foreground">{t('common.loading')}</p>
+								) : domainList.length === 0 ? (
 									<p className="text-sm text-muted-foreground">{t('control.noDomains')}</p>
 								) : (
 									<ul className="flex flex-col gap-1 text-sm">
@@ -410,64 +426,69 @@ export function ControlPanel() {
 								<CardDescription>{t('control.corsDesc')}</CardDescription>
 							</CardHeader>
 							<CardContent className="flex flex-col gap-4">
-								{corsRules.map((rule, i) => (
-									<div key={rule.id} className="flex flex-col gap-3 rounded-lg border p-3">
-										<FieldGroup className="gap-3">
-											<Field>
-												<FieldLabel>{t('control.origins')}</FieldLabel>
-												<Input
-													value={rule.origins}
-													onChange={(e) =>
-														setCorsRules((list) =>
-															list.map((item, idx) =>
-																idx === i ? { ...item, origins: e.target.value } : item,
-															),
-														)
-													}
-												/>
-											</Field>
-											<Field>
-												<FieldLabel>{t('control.methods')}</FieldLabel>
-												<Input
-													value={rule.methods}
-													onChange={(e) =>
-														setCorsRules((list) =>
-															list.map((item, idx) =>
-																idx === i ? { ...item, methods: e.target.value } : item,
-															),
-														)
-													}
-												/>
-											</Field>
-											<Field>
-												<FieldLabel>{t('control.headers')}</FieldLabel>
-												<Input
-													value={rule.headers}
-													onChange={(e) =>
-														setCorsRules((list) =>
-															list.map((item, idx) =>
-																idx === i ? { ...item, headers: e.target.value } : item,
-															),
-														)
-													}
-												/>
-											</Field>
-										</FieldGroup>
-										<Button
-											size="sm"
-											variant="ghost"
-											className="self-start"
-											onClick={() => setCorsRules((list) => list.filter((_, idx) => idx !== i))}
-										>
-											{t('control.removeRule')}
-										</Button>
-									</div>
-								))}
+								{cors.isLoading ? (
+									<Skeleton className="h-32 w-full" />
+								) : (
+									corsRules.map((rule, i) => (
+										<div key={rule.id} className="flex flex-col gap-3 rounded-lg border p-3">
+											<FieldGroup className="gap-3">
+												<Field>
+													<FieldLabel>{t('control.origins')}</FieldLabel>
+													<Input
+														value={rule.origins}
+														onChange={(e) =>
+															setCorsRules((list) =>
+																list.map((item, idx) =>
+																	idx === i ? { ...item, origins: e.target.value } : item,
+																),
+															)
+														}
+													/>
+												</Field>
+												<Field>
+													<FieldLabel>{t('control.methods')}</FieldLabel>
+													<Input
+														value={rule.methods}
+														onChange={(e) =>
+															setCorsRules((list) =>
+																list.map((item, idx) =>
+																	idx === i ? { ...item, methods: e.target.value } : item,
+																),
+															)
+														}
+													/>
+												</Field>
+												<Field>
+													<FieldLabel>{t('control.headers')}</FieldLabel>
+													<Input
+														value={rule.headers}
+														onChange={(e) =>
+															setCorsRules((list) =>
+																list.map((item, idx) =>
+																	idx === i ? { ...item, headers: e.target.value } : item,
+																),
+															)
+														}
+													/>
+												</Field>
+											</FieldGroup>
+											<Button
+												size="sm"
+												variant="ghost"
+												className="self-start"
+												onClick={() => setCorsRules((list) => list.filter((_, idx) => idx !== i))}
+											>
+												{t('control.removeRule')}
+											</Button>
+										</div>
+									))
+								)}
 							</CardContent>
 							<CardFooter className="flex-wrap gap-2 border-t">
 								<Button
 									size="sm"
 									variant="outline"
+									disabled={cors.isLoading}
 									onClick={() =>
 										setCorsRules((list) => [
 											...list,
@@ -484,6 +505,7 @@ export function ControlPanel() {
 								</Button>
 								<Button
 									size="sm"
+									disabled={cors.isLoading}
 									onClick={async () => {
 										if (!profileId) {
 											return;
@@ -499,18 +521,20 @@ export function ControlPanel() {
 									{t('common.save')}
 								</Button>
 							</CardFooter>
-							<CardContent>
-								<AdvancedJson
-									data={cors.data}
-									onSave={async (value) => {
-										if (!profileId) {
-											return;
-										}
-										await api.cfPutCors(profileId, bucket, value);
-										toast.success(t('toast.saved', { what: t('control.cors') }));
-									}}
-								/>
-							</CardContent>
+							{cors.isLoading ? null : (
+								<CardContent>
+									<AdvancedJson
+										data={cors.data}
+										onSave={async (value) => {
+											if (!profileId) {
+												return;
+											}
+											await api.cfPutCors(profileId, bucket, value);
+											toast.success(t('toast.saved', { what: t('control.cors') }));
+										}}
+									/>
+								</CardContent>
+							)}
 						</Card>
 					</TabsContent>
 
@@ -521,53 +545,58 @@ export function ControlPanel() {
 								<CardDescription>{t('control.lifecycleDesc')}</CardDescription>
 							</CardHeader>
 							<CardContent className="flex flex-col gap-4">
-								{lifeRules.map((rule, i) => (
-									<div
-										key={rule.id || i}
-										className="grid grid-cols-[1fr_100px_auto] items-end gap-2"
-									>
-										<Field>
-											<FieldLabel>{t('control.prefix')}</FieldLabel>
-											<Input
-												value={rule.prefix}
-												onChange={(e) =>
-													setLifeRules((list) =>
-														list.map((item, idx) =>
-															idx === i ? { ...item, prefix: e.target.value } : item,
-														),
-													)
-												}
-											/>
-										</Field>
-										<Field>
-											<FieldLabel>{t('control.days')}</FieldLabel>
-											<Input
-												type="number"
-												min={1}
-												value={rule.days}
-												onChange={(e) =>
-													setLifeRules((list) =>
-														list.map((item, idx) =>
-															idx === i ? { ...item, days: e.target.value } : item,
-														),
-													)
-												}
-											/>
-										</Field>
-										<Button
-											size="sm"
-											variant="ghost"
-											onClick={() => setLifeRules((list) => list.filter((_, idx) => idx !== i))}
+								{life.isLoading ? (
+									<Skeleton className="h-32 w-full" />
+								) : (
+									lifeRules.map((rule, i) => (
+										<div
+											key={rule.id || i}
+											className="grid grid-cols-[1fr_100px_auto] items-end gap-2"
 										>
-											{t('control.removeRule')}
-										</Button>
-									</div>
-								))}
+											<Field>
+												<FieldLabel>{t('control.prefix')}</FieldLabel>
+												<Input
+													value={rule.prefix}
+													onChange={(e) =>
+														setLifeRules((list) =>
+															list.map((item, idx) =>
+																idx === i ? { ...item, prefix: e.target.value } : item,
+															),
+														)
+													}
+												/>
+											</Field>
+											<Field>
+												<FieldLabel>{t('control.days')}</FieldLabel>
+												<Input
+													type="number"
+													min={1}
+													value={rule.days}
+													onChange={(e) =>
+														setLifeRules((list) =>
+															list.map((item, idx) =>
+																idx === i ? { ...item, days: e.target.value } : item,
+															),
+														)
+													}
+												/>
+											</Field>
+											<Button
+												size="sm"
+												variant="ghost"
+												onClick={() => setLifeRules((list) => list.filter((_, idx) => idx !== i))}
+											>
+												{t('control.removeRule')}
+											</Button>
+										</div>
+									))
+								)}
 							</CardContent>
 							<CardFooter className="flex-wrap gap-2 border-t">
 								<Button
 									size="sm"
 									variant="outline"
+									disabled={life.isLoading}
 									onClick={() =>
 										setLifeRules((list) => [
 											...list,
@@ -579,6 +608,7 @@ export function ControlPanel() {
 								</Button>
 								<Button
 									size="sm"
+									disabled={life.isLoading}
 									onClick={async () => {
 										if (!profileId) {
 											return;
@@ -594,18 +624,20 @@ export function ControlPanel() {
 									{t('common.save')}
 								</Button>
 							</CardFooter>
-							<CardContent>
-								<AdvancedJson
-									data={life.data}
-									onSave={async (value) => {
-										if (!profileId) {
-											return;
-										}
-										await api.cfPutLifecycle(profileId, bucket, value);
-										toast.success(t('toast.saved', { what: t('control.lifecycle') }));
-									}}
-								/>
-							</CardContent>
+							{life.isLoading ? null : (
+								<CardContent>
+									<AdvancedJson
+										data={life.data}
+										onSave={async (value) => {
+											if (!profileId) {
+												return;
+											}
+											await api.cfPutLifecycle(profileId, bucket, value);
+											toast.success(t('toast.saved', { what: t('control.lifecycle') }));
+										}}
+									/>
+								</CardContent>
+							)}
 						</Card>
 
 						<Card>
@@ -615,7 +647,8 @@ export function ControlPanel() {
 								<CardAction>
 									<Switch
 										id="lock-switch"
-										checked={lockOn}
+										checked={!lock.isLoading && lockOn}
+										disabled={lock.isLoading}
 										onCheckedChange={async (on) => {
 											if (!profileId) {
 												return;
@@ -633,16 +666,20 @@ export function ControlPanel() {
 								</CardAction>
 							</CardHeader>
 							<CardContent>
-								<AdvancedJson
-									data={lock.data}
-									onSave={async (value) => {
-										if (!profileId) {
-											return;
-										}
-										await api.cfPutLock(profileId, bucket, value);
-										toast.success(t('toast.saved', { what: t('control.lock') }));
-									}}
-								/>
+								{lock.isLoading ? (
+									<Skeleton className="h-8 w-full" />
+								) : (
+									<AdvancedJson
+										data={lock.data}
+										onSave={async (value) => {
+											if (!profileId) {
+												return;
+											}
+											await api.cfPutLock(profileId, bucket, value);
+											toast.success(t('toast.saved', { what: t('control.lock') }));
+										}}
+									/>
+								)}
 							</CardContent>
 						</Card>
 
@@ -652,19 +689,25 @@ export function ControlPanel() {
 								<CardDescription>{t('control.eventsDesc')}</CardDescription>
 							</CardHeader>
 							<CardContent className="flex flex-col gap-3">
-								<pre className="max-h-40 overflow-auto rounded-md bg-muted p-3 font-mono text-xs">
-									{stringifyJson(events.data)}
-								</pre>
-								<AdvancedJson
-									data={events.data}
-									onSave={async (value) => {
-										if (!profileId) {
-											return;
-										}
-										await api.cfPutEvents(profileId, bucket, value);
-										toast.success(t('toast.saved', { what: t('control.events') }));
-									}}
-								/>
+								{events.isLoading ? (
+									<p className="text-sm text-muted-foreground">{t('common.loading')}</p>
+								) : (
+									<>
+										<pre className="max-h-40 overflow-auto rounded-md bg-muted p-3 font-mono text-xs">
+											{stringifyJson(events.data)}
+										</pre>
+										<AdvancedJson
+											data={events.data}
+											onSave={async (value) => {
+												if (!profileId) {
+													return;
+												}
+												await api.cfPutEvents(profileId, bucket, value);
+												toast.success(t('toast.saved', { what: t('control.events') }));
+											}}
+										/>
+									</>
+								)}
 							</CardContent>
 						</Card>
 					</TabsContent>

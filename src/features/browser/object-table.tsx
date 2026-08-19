@@ -18,6 +18,7 @@ import {
 	EmptyMedia,
 	EmptyTitle,
 } from '@/components/ui/empty';
+import { Spinner } from '@/components/ui/spinner';
 import type { ObjectItem } from '@/entities/profile/types';
 import { cn } from '@/lib/utils';
 import { fileKind, formatBytes, formatModified } from '@/shared/lib/object-key';
@@ -38,6 +39,8 @@ type SortKey = 'name' | 'size' | 'mtime';
 type Props = {
 	rows: ObjectItem[];
 	hasNextPage: boolean;
+	loading?: boolean;
+	error?: boolean;
 	selection: Selection;
 	onSelectionChange: (next: Selection) => void;
 	onOpen: (row: ObjectItem) => void;
@@ -76,6 +79,8 @@ function SortMark({ active, desc }: { active: boolean; desc: boolean }) {
 export function ObjectTable({
 	rows,
 	hasNextPage,
+	loading = false,
+	error = false,
 	selection,
 	onSelectionChange,
 	onOpen,
@@ -257,7 +262,17 @@ export function ObjectTable({
 								);
 							})}
 						</div>
-						{sorted.length === 0 ? (
+						{loading ? (
+							<Empty className="absolute inset-0 border-0">
+								<EmptyHeader>
+									<EmptyMedia variant="icon">
+										<Spinner className="size-6" />
+									</EmptyMedia>
+									<EmptyTitle>{t('common.loading')}</EmptyTitle>
+								</EmptyHeader>
+							</Empty>
+						) : null}
+						{!loading && !error && sorted.length === 0 ? (
 							<Empty className="absolute inset-0 border-0">
 								<EmptyHeader>
 									<EmptyMedia variant="icon">

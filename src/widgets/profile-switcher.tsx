@@ -32,7 +32,7 @@ export function ProfileSwitcher({
 	const profileId = useNavStore((s) => s.profileId);
 	const setProfileId = useNavStore((s) => s.setProfileId);
 	const setMainView = useNavStore((s) => s.setMainView);
-	const { data: profiles = [] } = useQuery({
+	const { data: profiles = [], isLoading } = useQuery({
 		queryKey: queryKeys.profiles,
 		queryFn: api.listProfiles,
 	});
@@ -55,7 +55,7 @@ export function ProfileSwitcher({
 					{compact ? null : (
 						<>
 							<span className="min-w-0 flex-1 truncate text-left">
-								{current?.name ?? t('profile.noAccount')}
+								{isLoading ? t('common.loading') : (current?.name ?? t('profile.noAccount'))}
 							</span>
 							<ChevronsUpDown data-icon="inline-end" />
 						</>
@@ -65,7 +65,9 @@ export function ProfileSwitcher({
 			<DropdownMenuContent align={compact ? 'end' : 'start'} className="w-64">
 				<DropdownMenuGroup>
 					<DropdownMenuLabel>{t('profile.title')}</DropdownMenuLabel>
-					{profiles.length === 0 ? (
+					{isLoading ? (
+						<DropdownMenuItem disabled>{t('common.loading')}</DropdownMenuItem>
+					) : profiles.length === 0 ? (
 						<DropdownMenuItem disabled>{t('profile.noAccount')}</DropdownMenuItem>
 					) : (
 						profiles.map((p) => (

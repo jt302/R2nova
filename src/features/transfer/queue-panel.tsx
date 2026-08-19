@@ -21,6 +21,7 @@ import {
 	ItemTitle,
 } from '@/components/ui/item';
 import { Progress } from '@/components/ui/progress';
+import { Spinner } from '@/components/ui/spinner';
 import { api } from '@/shared/api/backend';
 import { isAppError } from '@/shared/api/tauri-invoke';
 import { queryKeys } from '@/shared/config/query-keys';
@@ -30,7 +31,7 @@ import { useTransferStore } from '@/store/transfer';
 export function QueuePanel() {
 	const { t } = useTranslation();
 	const live = useTransferStore((s) => s.items);
-	const { data = [] } = useQuery({
+	const { data = [], isLoading } = useQuery({
 		queryKey: queryKeys.transfers,
 		queryFn: api.listTransfers,
 		refetchInterval: 2000,
@@ -59,6 +60,19 @@ export function QueuePanel() {
 					message: d.error ?? undefined,
 					direction: d.direction,
 				}));
+
+	if (isLoading && items.length === 0) {
+		return (
+			<Empty className="border-0">
+				<EmptyHeader>
+					<EmptyMedia variant="icon">
+						<Spinner className="size-6" />
+					</EmptyMedia>
+					<EmptyTitle>{t('common.loading')}</EmptyTitle>
+				</EmptyHeader>
+			</Empty>
+		);
+	}
 
 	if (merged.length === 0) {
 		return (

@@ -41,6 +41,7 @@ import {
 	ItemGroup,
 	ItemTitle,
 } from '@/components/ui/item';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Spinner } from '@/components/ui/spinner';
 import type { Profile } from '@/entities/profile/types';
 import { api } from '@/shared/api/backend';
@@ -79,7 +80,7 @@ export function AccountsPage({
 	const profileId = useNavStore((s) => s.profileId);
 	const setProfileId = useNavStore((s) => s.setProfileId);
 	const setMainView = useNavStore((s) => s.setMainView);
-	const { data: profiles = [] } = useQuery({
+	const { data: profiles = [], isLoading } = useQuery({
 		queryKey: queryKeys.profiles,
 		queryFn: api.listProfiles,
 	});
@@ -121,7 +122,13 @@ export function AccountsPage({
 						</Button>
 					}
 				/>
-				{profiles.length === 0 ? (
+				{isLoading ? (
+					<div className="flex flex-col gap-3">
+						{[0, 1, 2].map((i) => (
+							<Skeleton key={i} className="h-16 w-full" />
+						))}
+					</div>
+				) : profiles.length === 0 ? (
 					<Empty>
 						<EmptyHeader>
 							<EmptyMedia variant="icon">
