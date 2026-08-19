@@ -31,6 +31,7 @@ import {
 } from '@/components/ui/empty';
 import { Field, FieldGroup, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
+import { Spinner } from '@/components/ui/spinner';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
@@ -170,6 +171,10 @@ export function ControlPanel() {
 		}
 	}, [life.data]);
 
+	function fail(err: unknown) {
+		toast.error(isAppError(err) ? err.message : String(err));
+	}
+
 	const createBucket = useMutation({
 		mutationFn: () => api.cfCreateBucket(profileId ?? '', newBucket.trim()),
 		onSuccess: () => {
@@ -178,12 +183,19 @@ export function ControlPanel() {
 			toast.success(t('control.createBucket'));
 			setNewBucket('');
 		},
-		onError: (err) => toast.error(isAppError(err) ? err.message : String(err)),
+		onError: fail,
 	});
 
-	function fail(err: unknown) {
-		toast.error(isAppError(err) ? err.message : String(err));
-	}
+	const deleteBucket = useMutation({
+		mutationFn: () => api.cfDeleteBucket(profileId ?? '', bucket),
+		onSuccess: () => {
+			void qc.invalidateQueries({ queryKey: queryKeys.buckets(profileId ?? '') });
+			go({ bucket: '', prefix: '' });
+			setDeleteOpen(false);
+			toast.success(t('control.deleteBucket'));
+		},
+		onError: fail,
+	});
 
 	if (!admin) {
 		return (
@@ -661,32 +673,34 @@ export function ControlPanel() {
 				</Tabs>
 			</div>
 
-			<Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+			<Dialog
+				open={deleteOpen}
+				onOpenChange={(open) => {
+					if (!open && deleteBucket.isPending) {
+						return;
+					}
+					setDeleteOpen(open);
+				}}
+			>
 				<DialogContent>
 					<DialogHeader>
 						<DialogTitle>{t('control.deleteBucket')}</DialogTitle>
 						<DialogDescription>{t('control.deleteBucketDesc')}</DialogDescription>
 					</DialogHeader>
 					<DialogFooter>
-						<Button variant="outline" onClick={() => setDeleteOpen(false)}>
+						<Button
+							variant="outline"
+							disabled={deleteBucket.isPending}
+							onClick={() => setDeleteOpen(false)}
+						>
 							{t('common.cancel')}
 						</Button>
 						<Button
 							variant="destructive"
-							onClick={async () => {
-								if (!profileId || !bucket) {
-									return;
-								}
-								try {
-									await api.cfDeleteBucket(profileId, bucket);
-									void qc.invalidateQueries({ queryKey: queryKeys.buckets(profileId) });
-									go({ bucket: '', prefix: '' });
-									setDeleteOpen(false);
-								} catch (err) {
-									fail(err);
-								}
-							}}
+							disabled={!profileId || !bucket || deleteBucket.isPending}
+							onClick={() => deleteBucket.mutate()}
 						>
+							{deleteBucket.isPending ? <Spinner data-icon="inline-start" /> : null}
 							{t('common.delete')}
 						</Button>
 					</DialogFooter>

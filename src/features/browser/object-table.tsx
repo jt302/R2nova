@@ -45,8 +45,8 @@ type Props = {
 	onDownload: (row: ObjectItem) => void;
 	onRename: (row: ObjectItem | null) => void;
 	onCopy: (row: ObjectItem | null) => void;
-	onMove: () => void;
-	onDelete: () => void;
+	onMove: (row: ObjectItem | null) => void;
+	onDelete: (row: ObjectItem | null) => void;
 };
 
 function RowIcon({ row }: { row: ObjectItem }) {
@@ -287,11 +287,11 @@ export function ObjectTable({
 				<ContextMenuGroup>
 					<ContextMenuItem onSelect={() => onRename(target)}>{t('common.rename')}</ContextMenuItem>
 					<ContextMenuItem onSelect={() => onCopy(target)}>{t('common.copy')}</ContextMenuItem>
-					<ContextMenuItem onSelect={onMove}>{t('common.move')}</ContextMenuItem>
+					<ContextMenuItem onSelect={() => onMove(target)}>{t('common.move')}</ContextMenuItem>
 				</ContextMenuGroup>
 				<ContextMenuSeparator />
 				<ContextMenuGroup>
-					<ContextMenuItem variant="destructive" onSelect={onDelete}>
+					<ContextMenuItem variant="destructive" onSelect={() => onDelete(target)}>
 						{t('common.delete')}
 					</ContextMenuItem>
 				</ContextMenuGroup>

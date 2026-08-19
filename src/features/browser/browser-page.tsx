@@ -89,10 +89,13 @@ export function BrowserPage() {
 	const [renameSrc, setRenameSrc] = useState('');
 	const [renameOpen, setRenameOpen] = useState(false);
 	const [renameTo, setRenameTo] = useState('');
+	const [copySrc, setCopySrc] = useState('');
 	const [copyOpen, setCopyOpen] = useState(false);
 	const [copyDest, setCopyDest] = useState('');
+	const [moveKeys, setMoveKeys] = useState<string[]>([]);
 	const [moveOpen, setMoveOpen] = useState(false);
 	const [movePrefix, setMovePrefix] = useState('');
+	const [deleteKeys, setDeleteKeys] = useState<string[]>([]);
 	const [confirm, setConfirm] = useState<ConfirmKind>(null);
 	const [loadQuote, setLoadQuote] = useState(0);
 
@@ -153,21 +156,85 @@ export function BrowserPage() {
 	const selected = selectedKeys(selection, keys);
 	const hasNextPage = Boolean(objects.hasNextPage);
 
+	function lockedKeys(row?: ObjectItem | null): string[] {
+		if (selected.length > 0) {
+			return selected;
+		}
+		return row?.key ? [row.key] : [];
+	}
+
 	const invalidate = () => {
 		void qc.invalidateQueries({ queryKey: queryKeys.objects(profileId ?? '', bucket, prefix) });
 		void qc.invalidateQueries({ queryKey: queryKeys.cost });
 	};
 
+	const fail = (err: unknown) => toast.error(isAppError(err) ? err.message : String(err));
+
 	const del = useMutation({
-		mutationFn: () => api.deleteObjects({ profileId: profileId ?? '', bucket, keys: selected }),
+		mutationFn: () => api.deleteObjects({ profileId: profileId ?? '', bucket, keys: deleteKeys }),
 		onSuccess: (n) => {
 			toast.success(`${t('common.delete')} ${n}`);
 			invalidate();
 			setSelection(clearSelection());
 			setConfirm(null);
 		},
-		onError: (err) => toast.error(isAppError(err) ? err.message : String(err)),
+		onError: fail,
 	});
+
+	const rename = useMutation({
+		mutationFn: () =>
+			api.renameObject({
+				profileId: profileId ?? '',
+				bucket,
+				srcKey: renameSrc,
+				dstKey: joinKey(prefix, renameTo),
+			}),
+		onSuccess: () => {
+			toast.success(t('common.rename'));
+			setRenameOpen(false);
+			invalidate();
+		},
+		onError: fail,
+	});
+
+	const copy = useMutation({
+		mutationFn: () => {
+			const slash = copyDest.indexOf('/');
+			const dstBucket = slash === -1 ? bucket : copyDest.slice(0, slash);
+			const dstKey = slash === -1 ? copyDest : copyDest.slice(slash + 1);
+			return api.copyObject({
+				profileId: profileId ?? '',
+				srcBucket: bucket,
+				srcKey: copySrc,
+				dstBucket,
+				dstKey,
+			});
+		},
+		onSuccess: () => {
+			toast.success(t('common.copy'));
+			setCopyOpen(false);
+			invalidate();
+		},
+		onError: fail,
+	});
+
+	const move = useMutation({
+		mutationFn: () =>
+			api.moveObjects({
+				profileId: profileId ?? '',
+				bucket,
+				keys: moveKeys,
+				dstPrefix: movePrefix,
+			}),
+		onSuccess: () => {
+			toast.success(t('common.move'));
+			setMoveOpen(false);
+			invalidate();
+		},
+		onError: fail,
+	});
+
+	const confirmBusy = confirm === 'delete' ? del.isPending : objects.isFetchingNextPage;
 
 	function openRow(row: ObjectItem) {
 		if (row.isPrefix) {
@@ -222,8 +289,12 @@ export function BrowserPage() {
 	}
 
 	async function loadMore() {
-		await objects.fetchNextPage();
-		setConfirm(null);
+		try {
+			await objects.fetchNextPage();
+			setConfirm(null);
+		} catch (err) {
+			fail(err);
+		}
 	}
 
 	const crumbs = prefix
@@ -369,18 +440,24 @@ export function BrowserPage() {
 					onDownload={(row) => void downloadOne(row.key)}
 					onRename={(row) => {
 						setRenameSrc(row?.key ?? selected[0] ?? '');
-						setRenameTo(row?.name ?? '');
+						setRenameTo(row?.name ?? selected[0]?.split('/').pop() ?? '');
 						setRenameOpen(true);
 					}}
 					onCopy={(row) => {
-						setCopyDest(joinKey(prefix, row?.name ?? ''));
+						const src = row?.key ?? selected[0] ?? '';
+						setCopySrc(src);
+						setCopyDest(joinKey(prefix, row?.name ?? src.split('/').pop() ?? ''));
 						setCopyOpen(true);
 					}}
-					onMove={() => {
+					onMove={(row) => {
+						setMoveKeys(lockedKeys(row));
 						setMovePrefix(prefix);
 						setMoveOpen(true);
 					}}
-					onDelete={() => setConfirm('delete')}
+					onDelete={(row) => {
+						setDeleteKeys(lockedKeys(row));
+						setConfirm('delete');
+					}}
 				/>
 			</div>
 			<div className="flex h-9 shrink-0 items-center gap-3 border-t px-3 text-xs text-muted-foreground">
@@ -403,7 +480,9 @@ export function BrowserPage() {
 							size="xs"
 							variant="outline"
 							onClick={() => {
-								setCopyDest(joinKey(prefix, selected[0]?.split('/').pop() ?? ''));
+								const src = selected[0] ?? '';
+								setCopySrc(src);
+								setCopyDest(joinKey(prefix, src.split('/').pop() ?? ''));
 								setCopyOpen(true);
 							}}
 						>
@@ -413,13 +492,21 @@ export function BrowserPage() {
 							size="xs"
 							variant="outline"
 							onClick={() => {
+								setMoveKeys(selected);
 								setMovePrefix(prefix);
 								setMoveOpen(true);
 							}}
 						>
 							{t('common.move')}
 						</Button>
-						<Button size="xs" variant="destructive" onClick={() => setConfirm('delete')}>
+						<Button
+							size="xs"
+							variant="destructive"
+							onClick={() => {
+								setDeleteKeys(selected);
+								setConfirm('delete');
+							}}
+						>
 							{t('common.delete')}
 						</Button>
 					</div>
@@ -436,7 +523,15 @@ export function BrowserPage() {
 					</Alert>
 				) : null}
 			</div>
-			<Dialog open={renameOpen} onOpenChange={setRenameOpen}>
+			<Dialog
+				open={renameOpen}
+				onOpenChange={(open) => {
+					if (!open && rename.isPending) {
+						return;
+					}
+					setRenameOpen(open);
+				}}
+			>
 				<DialogContent>
 					<DialogHeader>
 						<DialogTitle>{t('common.rename')}</DialogTitle>
@@ -449,35 +544,41 @@ export function BrowserPage() {
 								id="rename-to"
 								value={renameTo}
 								onChange={(e) => setRenameTo(e.target.value)}
+								onKeyDown={(e) => {
+									if (e.key === 'Enter' && renameSrc && renameTo.trim() && !rename.isPending) {
+										rename.mutate();
+									}
+								}}
 							/>
 						</Field>
 					</FieldGroup>
 					<DialogFooter>
-						<Button variant="outline" onClick={() => setRenameOpen(false)}>
+						<Button
+							variant="outline"
+							disabled={rename.isPending}
+							onClick={() => setRenameOpen(false)}
+						>
 							{t('common.cancel')}
 						</Button>
 						<Button
-							onClick={async () => {
-								const src = renameSrc || selected[0];
-								if (!src || !profileId) {
-									return;
-								}
-								await api.renameObject({
-									profileId,
-									bucket,
-									srcKey: src,
-									dstKey: joinKey(prefix, renameTo),
-								});
-								setRenameOpen(false);
-								invalidate();
-							}}
+							disabled={!renameSrc || !renameTo.trim() || rename.isPending}
+							onClick={() => rename.mutate()}
 						>
+							{rename.isPending ? <Spinner data-icon="inline-start" /> : null}
 							{t('common.save')}
 						</Button>
 					</DialogFooter>
 				</DialogContent>
 			</Dialog>
-			<Dialog open={copyOpen} onOpenChange={setCopyOpen}>
+			<Dialog
+				open={copyOpen}
+				onOpenChange={(open) => {
+					if (!open && copy.isPending) {
+						return;
+					}
+					setCopyOpen(open);
+				}}
+			>
 				<DialogContent>
 					<DialogHeader>
 						<DialogTitle>{t('common.copy')}</DialogTitle>
@@ -491,39 +592,37 @@ export function BrowserPage() {
 								value={copyDest}
 								onChange={(e) => setCopyDest(e.target.value)}
 								placeholder={t('browser.copyDest')}
+								onKeyDown={(e) => {
+									if (e.key === 'Enter' && copySrc && copyDest.trim() && !copy.isPending) {
+										copy.mutate();
+									}
+								}}
 							/>
 						</Field>
 					</FieldGroup>
 					<DialogFooter>
-						<Button variant="outline" onClick={() => setCopyOpen(false)}>
+						<Button variant="outline" disabled={copy.isPending} onClick={() => setCopyOpen(false)}>
 							{t('common.cancel')}
 						</Button>
 						<Button
-							onClick={async () => {
-								const src = selected[0];
-								if (!src || !profileId) {
-									return;
-								}
-								const slash = copyDest.indexOf('/');
-								const dstBucket = slash === -1 ? bucket : copyDest.slice(0, slash);
-								const dstKey = slash === -1 ? copyDest : copyDest.slice(slash + 1);
-								await api.copyObject({
-									profileId,
-									srcBucket: bucket,
-									srcKey: src,
-									dstBucket,
-									dstKey,
-								});
-								setCopyOpen(false);
-								invalidate();
-							}}
+							disabled={!copySrc || !copyDest.trim() || copy.isPending}
+							onClick={() => copy.mutate()}
 						>
+							{copy.isPending ? <Spinner data-icon="inline-start" /> : null}
 							{t('common.save')}
 						</Button>
 					</DialogFooter>
 				</DialogContent>
 			</Dialog>
-			<Dialog open={moveOpen} onOpenChange={setMoveOpen}>
+			<Dialog
+				open={moveOpen}
+				onOpenChange={(open) => {
+					if (!open && move.isPending) {
+						return;
+					}
+					setMoveOpen(open);
+				}}
+			>
 				<DialogContent>
 					<DialogHeader>
 						<DialogTitle>{t('common.move')}</DialogTitle>
@@ -536,34 +635,39 @@ export function BrowserPage() {
 								id="move-prefix"
 								value={movePrefix}
 								onChange={(e) => setMovePrefix(e.target.value)}
+								onKeyDown={(e) => {
+									if (e.key === 'Enter' && moveKeys.length > 0 && !move.isPending) {
+										move.mutate();
+									}
+								}}
 							/>
 						</Field>
 					</FieldGroup>
 					<DialogFooter>
-						<Button variant="outline" onClick={() => setMoveOpen(false)}>
+						<Button variant="outline" disabled={move.isPending} onClick={() => setMoveOpen(false)}>
 							{t('common.cancel')}
 						</Button>
 						<Button
-							onClick={async () => {
-								if (!profileId) {
-									return;
-								}
-								await api.moveObjects({
-									profileId,
-									bucket,
-									keys: selected,
-									dstPrefix: movePrefix,
-								});
-								setMoveOpen(false);
-								invalidate();
-							}}
+							disabled={moveKeys.length === 0 || move.isPending}
+							onClick={() => move.mutate()}
 						>
+							{move.isPending ? <Spinner data-icon="inline-start" /> : null}
 							{t('common.save')}
 						</Button>
 					</DialogFooter>
 				</DialogContent>
 			</Dialog>
-			<AlertDialog open={confirm !== null} onOpenChange={(open) => !open && setConfirm(null)}>
+			<AlertDialog
+				open={confirm !== null}
+				onOpenChange={(open) => {
+					if (!open && confirmBusy) {
+						return;
+					}
+					if (!open) {
+						setConfirm(null);
+					}
+				}}
+			>
 				<AlertDialogContent>
 					<AlertDialogHeader>
 						<AlertDialogTitle>{t('common.confirm')}</AlertDialogTitle>
@@ -574,10 +678,12 @@ export function BrowserPage() {
 						</AlertDialogDescription>
 					</AlertDialogHeader>
 					<AlertDialogFooter>
-						<AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+						<AlertDialogCancel disabled={confirmBusy}>{t('common.cancel')}</AlertDialogCancel>
 						<AlertDialogAction
 							variant={confirm === 'delete' ? 'destructive' : 'default'}
-							onClick={() => {
+							disabled={confirmBusy}
+							onClick={(e) => {
+								e.preventDefault();
 								if (confirm === 'delete') {
 									del.mutate();
 									return;
@@ -585,6 +691,7 @@ export function BrowserPage() {
 								void loadMore();
 							}}
 						>
+							{confirmBusy ? <Spinner data-icon="inline-start" /> : null}
 							{t('common.confirm')}
 						</AlertDialogAction>
 					</AlertDialogFooter>

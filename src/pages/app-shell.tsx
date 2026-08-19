@@ -51,6 +51,7 @@ import { ProfileFormDialog } from '@/features/profile/profile-form-dialog';
 import { QueuePanel, useActiveTransferCount } from '@/features/transfer/queue-panel';
 import { api } from '@/shared/api/backend';
 import { queryKeys } from '@/shared/config/query-keys';
+import { applyDocumentTheme, windowTheme } from '@/shared/lib/theme';
 import { useActiveTab, useNavStore } from '@/store/nav';
 import { AboutDialog } from '@/widgets/about-dialog';
 import { ActivityRail } from '@/widgets/activity-rail';
@@ -60,12 +61,11 @@ import { TabStrip } from '@/widgets/tab-strip';
 
 function useThemeClass(theme: 'light' | 'dark' | 'system') {
 	useEffect(() => {
-		const root = document.documentElement;
 		const apply = () => {
-			const dark =
-				theme === 'dark' ||
-				(theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
-			root.classList.toggle('dark', dark);
+			applyDocumentTheme(theme, window.matchMedia('(prefers-color-scheme: dark)').matches);
+			void import('@tauri-apps/api/window')
+				.then(({ getCurrentWindow }) => getCurrentWindow().setTheme(windowTheme(theme)))
+				.catch(() => undefined);
 		};
 		apply();
 		if (theme !== 'system') {

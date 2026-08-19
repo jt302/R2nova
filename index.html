@@ -5,6 +5,19 @@
 		<link rel="icon" type="image/png" href="/icon.png" />
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 		<title>r2nova</title>
+		<script>
+			(function () {
+				try {
+					var stored = JSON.parse(localStorage.getItem('r2nova-nav') || '{}');
+					var theme = stored.state && stored.state.theme;
+					var dark =
+						theme === 'dark' ||
+						(theme !== 'light' && matchMedia('(prefers-color-scheme: dark)').matches);
+					document.documentElement.classList.toggle('dark', dark);
+					document.documentElement.style.colorScheme = dark ? 'dark' : 'light';
+				} catch (e) {}
+			})();
+		</script>
 	</head>
 	<body>
 		<div id="root"></div>
