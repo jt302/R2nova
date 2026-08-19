@@ -49,6 +49,7 @@ type Props = {
 	onOpen: (row: ObjectItem) => void;
 	onPreview: (row?: ObjectItem) => void;
 	onDownload: () => void;
+	onDownloadTo: () => void;
 	onRename: () => void;
 	onCopy: () => void;
 	onMove: () => void;
@@ -101,6 +102,7 @@ export function ObjectTable({
 	onOpen,
 	onPreview,
 	onDownload,
+	onDownloadTo,
 	onRename,
 	onCopy,
 	onMove,
@@ -321,6 +323,13 @@ export function ObjectTable({
 									onSelect={() => onDownload()}
 								>
 									{t('common.download')}
+								</ContextMenuItem>
+								<ContextMenuItem
+									disabled={!caps.canDownload}
+									title={caps.canDownload ? undefined : t('browser.downloadNoFolder')}
+									onSelect={() => onDownloadTo()}
+								>
+									{t('transfer.downloadTo')}
 								</ContextMenuItem>
 							</ContextMenuGroup>
 							<ContextMenuSeparator />

@@ -12,6 +12,9 @@ export type QueueItem = {
 	message?: string;
 	speedBps?: number;
 	sampledAt?: number;
+	bucket?: string;
+	path?: string;
+	pausable?: boolean;
 };
 
 const STATUS_RANK: Record<QueueStatus, number> = {
@@ -27,8 +30,36 @@ export function isActiveStatus(status: QueueStatus): boolean {
 	return status === 'running' || status === 'queued';
 }
 
+export function isRunningStatus(status: QueueStatus): boolean {
+	return status === 'running';
+}
+
+export function isQueuedStatus(status: QueueStatus): boolean {
+	return status === 'queued';
+}
+
 export function isEndedStatus(status: QueueStatus): boolean {
-	return status === 'completed' || status === 'failed' || status === 'cancelled';
+	return status === 'completed' || status === 'cancelled';
+}
+
+export function canPause(item: QueueItem): boolean {
+	return item.status === 'running' && Boolean(item.pausable);
+}
+
+export function canResume(item: QueueItem): boolean {
+	return (
+		item.status === 'queued' ||
+		item.status === 'paused' ||
+		(item.status === 'failed' && Boolean(item.pausable))
+	);
+}
+
+export function canRetry(item: QueueItem): boolean {
+	return item.status === 'failed' && !item.pausable;
+}
+
+export function canDismiss(item: QueueItem): boolean {
+	return isEndedStatus(item.status) || canRetry(item);
 }
 
 export function fromApi(d: TransferProgress): QueueItem {
@@ -40,6 +71,9 @@ export function fromApi(d: TransferProgress): QueueItem {
 		bytesTotal: d.bytesTotal,
 		status: d.status,
 		message: d.error ?? undefined,
+		bucket: d.bucket,
+		path: d.path,
+		pausable: d.pausable,
 	};
 }
 
@@ -63,6 +97,9 @@ export function mergeQueue(
 		byId.set(item.id, {
 			...item,
 			direction: item.direction ?? apiRow?.direction,
+			bucket: item.bucket ?? apiRow?.bucket,
+			path: item.path ?? apiRow?.path,
+			pausable: item.pausable ?? apiRow?.pausable,
 		});
 	}
 	return [...byId.values()].sort((a, b) => STATUS_RANK[a.status] - STATUS_RANK[b.status]);

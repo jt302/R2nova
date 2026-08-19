@@ -8,6 +8,9 @@ export const SIDEBAR_DEFAULT_PX = 260;
 export const PREVIEW_MIN_PCT = 18;
 export const PREVIEW_MAX_PCT = 45;
 export const PREVIEW_DEFAULT_PCT = 28;
+export const TRANSFER_CONCURRENCY_MIN = 1;
+export const TRANSFER_CONCURRENCY_MAX = 16;
+export const TRANSFER_CONCURRENCY_DEFAULT = 5;
 
 export function clampSidebarWidth(px: number): number {
 	if (!Number.isFinite(px)) {
@@ -21,6 +24,13 @@ export function clampPreviewSize(pct: number): number {
 		return PREVIEW_DEFAULT_PCT;
 	}
 	return Math.min(PREVIEW_MAX_PCT, Math.max(PREVIEW_MIN_PCT, pct));
+}
+
+export function clampTransferConcurrency(n: number): number {
+	if (!Number.isFinite(n)) {
+		return TRANSFER_CONCURRENCY_DEFAULT;
+	}
+	return Math.min(TRANSFER_CONCURRENCY_MAX, Math.max(TRANSFER_CONCURRENCY_MIN, Math.round(n)));
 }
 
 export function parseLanguage(value: unknown): AppLanguage | undefined {

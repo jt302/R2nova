@@ -99,6 +99,7 @@ export function AppShell() {
 	const forward = useNavStore((s) => s.forward);
 	const sidebarCollapsed = useNavStore((s) => s.sidebarCollapsed);
 	const setPreview = useNavStore((s) => s.setPreview);
+	const transferConcurrency = useNavStore((s) => s.transferConcurrency);
 	const activeTab = useActiveTab();
 	const [commandOpen, setCommandOpen] = useState(false);
 	const [formOpen, setFormOpen] = useState(false);
@@ -124,6 +125,10 @@ export function AppShell() {
 			void i18n.changeLanguage(language);
 		}
 	}, [i18n, language]);
+
+	useEffect(() => {
+		void api.setTransferConcurrency(transferConcurrency).catch(() => undefined);
+	}, [transferConcurrency]);
 
 	useEffect(() => {
 		const onKey = (e: KeyboardEvent) => {

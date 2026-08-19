@@ -4,10 +4,12 @@ import {
 	type AppLanguage,
 	clampPreviewSize,
 	clampSidebarWidth,
+	clampTransferConcurrency,
 	initialLanguage,
 	initialPreviewSize,
 	initialSidebarWidth,
 	parseLanguage,
+	TRANSFER_CONCURRENCY_DEFAULT,
 } from '@/shared/lib/prefs';
 import {
 	type PreviewTarget,
@@ -37,6 +39,8 @@ type NavState = {
 	sidebarCollapsed: boolean;
 	sidebarWidth: number;
 	previewSize: number;
+	downloadDir: string | null;
+	transferConcurrency: number;
 	setProfileId: (id: string | null) => void;
 	setTheme: (theme: NavState['theme']) => void;
 	setLanguage: (language: AppLanguage) => void;
@@ -44,6 +48,8 @@ type NavState = {
 	setSidebarCollapsed: (collapsed: boolean) => void;
 	setSidebarWidth: (width: number) => void;
 	setPreviewSize: (size: number) => void;
+	setDownloadDir: (dir: string | null) => void;
+	setTransferConcurrency: (n: number) => void;
 	setPreview: (preview: PreviewTarget | null) => void;
 	go: (loc: Location) => void;
 	back: () => void;
@@ -90,6 +96,8 @@ export const useNavStore = create<NavState>()(
 				sidebarCollapsed: false,
 				sidebarWidth: initialSidebarWidth(),
 				previewSize: initialPreviewSize(),
+				downloadDir: null,
+				transferConcurrency: TRANSFER_CONCURRENCY_DEFAULT,
 				setProfileId: (id) =>
 					set((s) => ({
 						profileId: id,
@@ -104,6 +112,8 @@ export const useNavStore = create<NavState>()(
 				setSidebarCollapsed: (sidebarCollapsed) => set({ sidebarCollapsed }),
 				setSidebarWidth: (width) => set({ sidebarWidth: clampSidebarWidth(width) }),
 				setPreviewSize: (size) => set({ previewSize: clampPreviewSize(size) }),
+				setDownloadDir: (downloadDir) => set({ downloadDir }),
+				setTransferConcurrency: (n) => set({ transferConcurrency: clampTransferConcurrency(n) }),
 				setPreview: (preview) =>
 					set((s) => ({
 						tabs: s.tabs.map((t) => (t.id === s.activeTabId ? { ...t, preview } : t)),
@@ -188,6 +198,15 @@ export const useNavStore = create<NavState>()(
 					sidebarCollapsed: incoming.sidebarCollapsed ?? false,
 					sidebarWidth: clampSidebarWidth(incoming.sidebarWidth ?? current.sidebarWidth),
 					previewSize: clampPreviewSize(incoming.previewSize ?? current.previewSize),
+					downloadDir:
+						typeof incoming.downloadDir === 'string' || incoming.downloadDir === null
+							? incoming.downloadDir
+							: (current.downloadDir ?? null),
+					transferConcurrency: clampTransferConcurrency(
+						typeof incoming.transferConcurrency === 'number'
+							? incoming.transferConcurrency
+							: (current.transferConcurrency ?? TRANSFER_CONCURRENCY_DEFAULT),
+					),
 					tabs,
 					activeTabId: incoming.activeTabId ?? current.activeTabId,
 				};
@@ -202,6 +221,8 @@ export const useNavStore = create<NavState>()(
 				sidebarCollapsed: s.sidebarCollapsed,
 				sidebarWidth: s.sidebarWidth,
 				previewSize: s.previewSize,
+				downloadDir: s.downloadDir,
+				transferConcurrency: s.transferConcurrency,
 			}),
 		},
 	),

@@ -1,6 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import type { TransferProgress } from '@/entities/profile/types';
-import { etaParts, etaSecs, mergeQueue, sampleSpeed } from '@/shared/lib/transfer-queue';
+import {
+	canDismiss,
+	canPause,
+	canResume,
+	canRetry,
+	etaParts,
+	etaSecs,
+	isEndedStatus,
+	mergeQueue,
+	sampleSpeed,
+} from '@/shared/lib/transfer-queue';
 
 function api(
 	partial: Partial<TransferProgress> & Pick<TransferProgress, 'transferId'>,
@@ -37,6 +47,8 @@ describe('mergeQueue', () => {
 					status: 'completed',
 					bytesDone: 9,
 					bytesTotal: 9,
+					bucket: 'assets',
+					path: '/tmp/b.bin',
 				}),
 			],
 			{},
@@ -45,6 +57,7 @@ describe('mergeQueue', () => {
 		expect(merged.find((row) => row.id === 'a')?.bytesDone).toBe(4);
 		expect(merged.find((row) => row.id === 'a')?.direction).toBe('upload');
 		expect(merged.find((row) => row.id === 'b')?.direction).toBe('download');
+		expect(merged.find((row) => row.id === 'b')?.bucket).toBe('assets');
 	});
 
 	it('omits dismissed ids', () => {
@@ -81,5 +94,73 @@ describe('sampleSpeed / eta', () => {
 		expect(etaParts(etaSecs(0, 10_000_000, 10_000_000))).toEqual({ key: 'seconds', count: 1 });
 		expect(etaParts(90)).toEqual({ key: 'minutes', count: 2 });
 		expect(etaParts(3661)).toEqual({ key: 'hours', h: 1, m: 1 });
+	});
+});
+
+describe('queue actions', () => {
+	it('pauses running multipart jobs and resumes failed downloads', () => {
+		expect(
+			canPause({
+				id: 'a',
+				key: 'a',
+				bytesDone: 1,
+				bytesTotal: 2,
+				status: 'running',
+				pausable: true,
+			}),
+		).toBe(true);
+		expect(canPause({ id: 'a', key: 'a', bytesDone: 1, bytesTotal: 2, status: 'running' })).toBe(
+			false,
+		);
+		expect(
+			canResume({
+				id: 'a',
+				key: 'a',
+				bytesDone: 0,
+				bytesTotal: 2,
+				status: 'queued',
+			}),
+		).toBe(true);
+		expect(
+			canResume({
+				id: 'a',
+				key: 'a',
+				bytesDone: 1,
+				bytesTotal: 2,
+				status: 'failed',
+				pausable: true,
+			}),
+		).toBe(true);
+		expect(canRetry({ id: 'a', key: 'a', bytesDone: 0, bytesTotal: 2, status: 'failed' })).toBe(
+			true,
+		);
+		expect(isEndedStatus('failed')).toBe(false);
+		expect(isEndedStatus('completed')).toBe(true);
+		expect(
+			canDismiss({ id: 'a', key: 'a', bytesDone: 1, bytesTotal: 1, status: 'completed' }),
+		).toBe(true);
+		expect(canDismiss({ id: 'a', key: 'a', bytesDone: 0, bytesTotal: 2, status: 'failed' })).toBe(
+			true,
+		);
+		expect(
+			canDismiss({
+				id: 'a',
+				key: 'a',
+				bytesDone: 1,
+				bytesTotal: 2,
+				status: 'failed',
+				pausable: true,
+			}),
+		).toBe(false);
+		expect(
+			canDismiss({
+				id: 'a',
+				key: 'a',
+				bytesDone: 1,
+				bytesTotal: 2,
+				status: 'running',
+				pausable: true,
+			}),
+		).toBe(false);
 	});
 });

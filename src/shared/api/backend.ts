@@ -74,10 +74,41 @@ export const api = {
 		bucket: string;
 		key: string;
 		dest: string;
+		unique?: boolean;
+		bytesTotal?: number;
 		onEvent: unknown;
-	}) => tauriInvoke<string>('download_object', args),
+	}) =>
+		tauriInvoke<string>('download_object', {
+			profileId: args.profileId,
+			bucket: args.bucket,
+			key: args.key,
+			dest: args.dest,
+			unique: args.unique ?? false,
+			bytesTotal: args.bytesTotal ?? 0,
+			onEvent: args.onEvent,
+		}),
+	downloadObjects: (args: {
+		profileId: string;
+		bucket: string;
+		items: { key: string; dest: string; bytesTotal?: number }[];
+		unique?: boolean;
+		onEvent: unknown;
+	}) =>
+		tauriInvoke<string[]>('download_objects', {
+			profileId: args.profileId,
+			bucket: args.bucket,
+			items: args.items,
+			unique: args.unique ?? true,
+			onEvent: args.onEvent,
+		}),
+	setTransferConcurrency: (concurrency: number) =>
+		tauriInvoke<void>('set_transfer_concurrency', { concurrency }),
 	listTransfers: () => tauriInvoke<TransferProgress[]>('list_transfers'),
+	dismissTransfer: (transferId: string) => tauriInvoke<void>('dismiss_transfer', { transferId }),
 	cancelTransfer: (transferId: string) => tauriInvoke<void>('cancel_transfer', { transferId }),
+	pauseTransfer: (transferId: string) => tauriInvoke<void>('pause_transfer', { transferId }),
+	resumeTransfer: (transferId: string, onEvent: unknown) =>
+		tauriInvoke<string>('resume_transfer', { transferId, onEvent }),
 	previewObject: (args: { profileId: string; bucket: string; key: string }) =>
 		tauriInvoke<string>('preview_object', args),
 	presignGet: (args: { profileId: string; bucket: string; key: string; expiresInSecs: number }) =>

@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { open as openDialog } from '@tauri-apps/plugin-dialog';
 import {
 	ArrowUpDown,
 	FolderOpen,
@@ -38,6 +39,8 @@ export function CommandPalette({
 	const setTheme = useNavStore((s) => s.setTheme);
 	const setLanguage = useNavStore((s) => s.setLanguage);
 	const setMainView = useNavStore((s) => s.setMainView);
+	const downloadDir = useNavStore((s) => s.downloadDir);
+	const setDownloadDir = useNavStore((s) => s.setDownloadDir);
 	const { data: buckets = [] } = useQuery({
 		queryKey: queryKeys.buckets(profileId ?? ''),
 		queryFn: () => api.listBuckets(profileId ?? ''),
@@ -111,6 +114,33 @@ export function CommandPalette({
 						<ArrowUpDown />
 						{t('command.transfers')}
 					</CommandItem>
+					<CommandItem
+						value="download-dir"
+						onSelect={() => {
+							void openDialog({ directory: true, multiple: false }).then((picked) => {
+								const dir = Array.isArray(picked) ? picked[0] : picked;
+								if (typeof dir === 'string' && dir) {
+									setDownloadDir(dir);
+								}
+							});
+							onOpenChange(false);
+						}}
+					>
+						<FolderOpen />
+						{t('command.downloadDir')}
+					</CommandItem>
+					{downloadDir ? (
+						<CommandItem
+							value="download-dir-clear"
+							onSelect={() => {
+								setDownloadDir(null);
+								onOpenChange(false);
+							}}
+						>
+							<FolderOpen />
+							{t('command.downloadDirClear')}
+						</CommandItem>
+					) : null}
 					<CommandItem
 						value="new-tab"
 						onSelect={() => {

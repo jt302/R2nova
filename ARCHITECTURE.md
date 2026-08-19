@@ -6,7 +6,7 @@ r2nova is a Tauri 2 desktop app. The WebView never talks to R2 or `api.cloudflar
 React (FSD)  --invoke / Channel-->  Rust commands
                                    ├── s3/      aws-sdk-s3 client pool, list, multipart
                                    ├── cf/      Cloudflare REST + GET cache
-                                   ├── transfer tokio queue, equal parts, resume files
+                                   ├── transfer cooperative pause, equal parts, resume files, Range GET
                                    ├── creds    keyring-core + platform stores
                                    └── cost     Class A/B counters
 ```
@@ -31,7 +31,7 @@ Server state: TanStack Query. Do not poll `ListObjectsV2`.
 
 S3 clients are pooled per `profileId + jurisdiction`. EU / FedRAMP use different hosts.
 
-Transfer progress: one `ipc::Channel` per batch, 200ms throttle on the Rust side. Queue + multipart resume JSON live under the app data dir (`development/` in debug builds).
+Transfer progress: one `ipc::Channel` per batch, 200ms throttle on the Rust side. Jobs enqueue as `queued` and run under a 1–16 job cap (default 5). Jobs persist in `queue.json`; multipart uploads keep equal-size part state in `*.resume.json`. Pause is cooperative. After a crash, `Running` jobs are parked as `Paused` and resume from the sidecar or a ranged GET. Downloads can use a remembered default folder.
 
 ## Platforms
 

@@ -136,12 +136,16 @@
 		"objects": "Open object browser",
 		"settings": "Open control plane",
 		"accounts": "Open accounts",
-		"transfers": "Open transfer queue"
+		"transfers": "Open transfer queue",
+		"downloadDir": "Set default download folder",
+		"downloadDirClear": "Clear default download folder"
 	},
 	"transfer": {
 		"queue": "Transfer queue",
 		"idle": "No active transfers",
 		"active": "{{count}} in progress",
+		"waiting": "{{count}} waiting",
+		"activeAndWaiting": "{{running}} in progress · {{waiting}} waiting",
 		"upload": "Upload",
 		"download": "Download",
 		"emptyTitle": "Queue is empty",
@@ -151,8 +155,19 @@
 		"colEta": "ETA",
 		"colStatus": "Status",
 		"colError": "Error",
+		"colBucket": "Bucket",
+		"colPath": "Local path",
 		"dismiss": "Remove from list",
 		"clearFinished": "Clear finished",
+		"pause": "Pause",
+		"resume": "Resume",
+		"retry": "Retry",
+		"downloadDir": "Set default download folder",
+		"downloadDirSet": "Change",
+		"downloadDirClear": "Clear",
+		"downloadDirUnset": "No default download folder",
+		"concurrency": "Concurrency",
+		"downloadTo": "Download to…",
 		"speed": "{{value}}/s",
 		"etaSeconds": "{{count}}s",
 		"etaMinutes": "{{count}}m",
@@ -161,7 +176,7 @@
 			"running": "Running",
 			"finished": "Done",
 			"failed": "Failed",
-			"queued": "Queued",
+			"queued": "Waiting",
 			"paused": "Paused",
 			"completed": "Done",
 			"cancelled": "Cancelled"
@@ -252,6 +267,9 @@
 		"uploadFailed": "Upload failed",
 		"downloadFailed": "Download failed",
 		"listFailed": "Could not load objects",
-		"transferCancelFailed": "Could not cancel transfer"
+		"transferCancelFailed": "Could not cancel transfer",
+		"transferPauseFailed": "Could not pause transfer",
+		"transferResumeFailed": "Could not resume transfer",
+		"transferDismissFailed": "Could not clear transfer"
 	}
 }

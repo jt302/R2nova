@@ -66,6 +66,10 @@ export type TransferProgress = {
 	bytesTotal: number;
 	status: 'queued' | 'running' | 'paused' | 'completed' | 'failed' | 'cancelled';
 	error?: string | null;
+	profileId?: string;
+	bucket?: string;
+	path?: string;
+	pausable?: boolean;
 };
 
 export type MultipartUploadItem = {
@@ -86,9 +90,16 @@ export type TransferEvent =
 				transferId: string;
 				key: string;
 				bytesTotal: number;
+				bytesDone: number;
 				direction: TransferProgress['direction'];
+				bucket: string;
+				path: string;
+				pausable: boolean;
+				status?: TransferProgress['status'];
 			};
 	  }
 	| { event: 'progress'; data: { transferId: string; bytesDone: number; bytesTotal: number } }
+	| { event: 'paused'; data: { transferId: string } }
+	| { event: 'cancelled'; data: { transferId: string } }
 	| { event: 'finished'; data: { transferId: string } }
 	| { event: 'failed'; data: { transferId: string; message: string } };

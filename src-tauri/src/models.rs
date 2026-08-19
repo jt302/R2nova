@@ -107,16 +107,24 @@ pub struct TransferProgress {
 	pub bytes_total: u64,
 	pub status: TransferStatus,
 	pub error: Option<String>,
+	#[serde(default)]
+	pub profile_id: String,
+	#[serde(default)]
+	pub bucket: String,
+	#[serde(default)]
+	pub path: String,
+	#[serde(default)]
+	pub pausable: bool,
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub enum TransferDirection {
 	Upload,
 	Download,
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub enum TransferStatus {
 	Queued,

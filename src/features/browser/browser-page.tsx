@@ -58,6 +58,7 @@ import { ObjectTable } from '@/features/browser/object-table';
 import { api } from '@/shared/api/backend';
 import { isAppError } from '@/shared/api/tauri-invoke';
 import { queryKeys } from '@/shared/config/query-keys';
+import { downloadDest, joinDest } from '@/shared/lib/download-path';
 import { joinKey } from '@/shared/lib/object-key';
 import {
 	clearSelection,
@@ -72,18 +73,13 @@ import { useActiveTab, useCurrentLocation, useNavStore } from '@/store/nav';
 
 type ConfirmKind = 'delete' | 'loadMore' | null;
 
-function joinDest(dir: string, name: string): string {
-	const win = dir.includes('\\') && !dir.includes('/');
-	const sep = win ? '\\' : '/';
-	return `${dir.replace(/[\\/]+$/, '')}${sep}${name}`;
-}
-
 export function BrowserPage() {
 	const { t } = useTranslation();
 	const qc = useQueryClient();
 	const profileId = useNavStore((s) => s.profileId);
 	const go = useNavStore((s) => s.go);
 	const setPreview = useNavStore((s) => s.setPreview);
+	const downloadDir = useNavStore((s) => s.downloadDir);
 	const back = useNavStore((s) => s.back);
 	const forward = useNavStore((s) => s.forward);
 	const tab = useActiveTab();
@@ -287,11 +283,13 @@ export function BrowserPage() {
 		}
 	}
 
-	async function downloadOne(key: string) {
+	async function downloadOne(key: string, pick: boolean) {
 		if (!profileId || !bucket) {
 			return;
 		}
-		const dest = await save({ defaultPath: key.split('/').pop() });
+		const name = rowByKey.get(key)?.name ?? key.split('/').pop() ?? 'object';
+		const silent = downloadDest(pick ? null : downloadDir, name);
+		const dest = silent ?? (await save({ defaultPath: name }));
 		if (!dest) {
 			return;
 		}
@@ -301,6 +299,8 @@ export function BrowserPage() {
 				bucket,
 				key,
 				dest,
+				unique: Boolean(silent),
+				bytesTotal: rowByKey.get(key)?.size ?? 0,
 				onEvent: createTransferChannel(),
 			});
 		} catch (err) {
@@ -308,43 +308,45 @@ export function BrowserPage() {
 		}
 	}
 
-	async function downloadSelection() {
+	async function downloadSelection(pick = false) {
 		if (!caps.canDownload) {
 			return;
 		}
 		if (files.length === 1) {
 			const key = files[0];
 			if (key) {
-				await downloadOne(key);
+				await downloadOne(key, pick);
 			}
 			return;
 		}
 		if (!profileId || !bucket) {
 			return;
 		}
-		const picked = await open({ directory: true, multiple: false });
-		const dir = Array.isArray(picked) ? picked[0] : picked;
-		if (!dir) {
+		let pickedDir = pick ? null : downloadDir;
+		if (!pickedDir) {
+			const picked = await open({ directory: true, multiple: false });
+			pickedDir = Array.isArray(picked) ? picked[0] : picked;
+		}
+		if (!pickedDir) {
 			return;
 		}
-		// ponytail: serial download_object; each invoke runs the full GetObject.
-		// Upgrade: enqueue into the transfer engine with a concurrency cap.
-		for (const key of files) {
+		const items = files.map((key) => {
 			const name = rowByKey.get(key)?.name ?? key.split('/').pop() ?? 'object';
-			const dest = joinDest(dir, name);
-			try {
-				await api.downloadObject({
-					profileId,
-					bucket,
-					key,
-					dest,
-					onEvent: createTransferChannel(),
-				});
-			} catch (err) {
-				fail(err, t('toast.downloadFailed'));
-				return;
-			}
-		}
+			return {
+				key,
+				dest: joinDest(pickedDir, name),
+				bytesTotal: rowByKey.get(key)?.size ?? 0,
+			};
+		});
+		void api
+			.downloadObjects({
+				profileId,
+				bucket,
+				items,
+				unique: true,
+				onEvent: createTransferChannel(),
+			})
+			.catch((err) => fail(err, t('toast.downloadFailed')));
 	}
 
 	function openRename() {
@@ -539,6 +541,17 @@ export function BrowserPage() {
 					<Download data-icon="inline-start" />
 					{t('common.download')}
 				</Button>
+				<Button
+					variant="outline"
+					size="sm"
+					disabled={!caps.canDownload}
+					title={
+						selected.length > 0 && !caps.canDownload ? t('browser.downloadNoFolder') : undefined
+					}
+					onClick={() => void downloadSelection(true)}
+				>
+					{t('transfer.downloadTo')}
+				</Button>
 			</div>
 			<div className="min-h-0 flex-1">
 				{objects.isError ? (
@@ -565,6 +578,7 @@ export function BrowserPage() {
 						setPreview({ profileId, bucket, key });
 					}}
 					onDownload={() => void downloadSelection()}
+					onDownloadTo={() => void downloadSelection(true)}
 					onRename={openRename}
 					onCopy={openCopy}
 					onMove={openMove}

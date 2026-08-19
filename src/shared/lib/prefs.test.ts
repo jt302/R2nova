@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
 	clampPreviewSize,
 	clampSidebarWidth,
+	clampTransferConcurrency,
 	detectLanguage,
 	PREVIEW_DEFAULT_PCT,
 	PREVIEW_MAX_PCT,
@@ -10,6 +11,9 @@ import {
 	SIDEBAR_DEFAULT_PX,
 	SIDEBAR_MAX_PX,
 	SIDEBAR_MIN_PX,
+	TRANSFER_CONCURRENCY_DEFAULT,
+	TRANSFER_CONCURRENCY_MAX,
+	TRANSFER_CONCURRENCY_MIN,
 } from '@/shared/lib/prefs';
 
 describe('prefs', () => {
@@ -25,6 +29,13 @@ describe('prefs', () => {
 		expect(clampPreviewSize(10)).toBe(PREVIEW_MIN_PCT);
 		expect(clampPreviewSize(90)).toBe(PREVIEW_MAX_PCT);
 		expect(clampPreviewSize(Number.NaN)).toBe(PREVIEW_DEFAULT_PCT);
+	});
+
+	it('clamps transfer concurrency to 1–16', () => {
+		expect(clampTransferConcurrency(5)).toBe(5);
+		expect(clampTransferConcurrency(0)).toBe(TRANSFER_CONCURRENCY_MIN);
+		expect(clampTransferConcurrency(99)).toBe(TRANSFER_CONCURRENCY_MAX);
+		expect(clampTransferConcurrency(Number.NaN)).toBe(TRANSFER_CONCURRENCY_DEFAULT);
 	});
 
 	it('prefers stored language over the browser locale', () => {
