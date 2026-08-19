@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.3
+
+- Check and install updates from the version dialog in the titlebar
+
 ## 0.1.2
 
 - Transfers are a full main view, persist across restarts, and enqueue concurrently

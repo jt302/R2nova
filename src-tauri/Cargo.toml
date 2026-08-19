@@ -1,6 +1,6 @@
 [package]
 name = "r2nova"
-version = "0.1.2"
+version = "0.1.3"
 description = "Cloudflare R2 desktop client"
 authors = ["r2nova"]
 license = "MIT"
