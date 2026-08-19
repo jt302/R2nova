@@ -1,7 +1,7 @@
 {
 	"name": "r2nova",
 	"private": true,
-	"version": "0.1.0",
+	"version": "0.1.1",
 	"type": "module",
 	"packageManager": "pnpm@10.33.0",
 	"scripts": {
@@ -16,6 +16,7 @@
 		"test": "vitest run",
 		"test:watch": "vitest",
 		"tauri": "tauri",
+		"icon": "rsvg-convert -w 1024 -h 1024 app-icon.svg -o /tmp/r2nova-app-icon.png && pnpm tauri icon /tmp/r2nova-app-icon.png && cp src-tauri/icons/32x32.png public/icon.png && rm -rf src-tauri/icons/ios src-tauri/icons/android",
 		"release:check": "node scripts/check-version-consistency.mjs"
 	},
 	"dependencies": {
