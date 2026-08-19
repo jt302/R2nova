@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.2
+
+- Transfers are a full main view, persist across restarts, and enqueue concurrently
+- Copy public object URLs from the file list when r2.dev or a custom domain is enabled
+- Remember language and panel sizes; pick language from the titlebar
+- Packaged app name is R2nova; status text and paths are selectable
+- Fix duplicate drag-drop uploads, selection-aware object actions, and loading vs empty states
+
 ## 0.1.1
 
 - Replace the placeholder app icon with a warm-orange nova mark aligned to the UI primary color
