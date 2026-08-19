@@ -1,6 +1,6 @@
 {
 	"app": {
-		"name": "r2nova",
+		"name": "R2nova",
 		"tagline": "Cloudflare R2 desktop client",
 		"updateAvailable": "Update {{version}} is available — brew upgrade r2nova",
 		"commandPalette": "Command palette",

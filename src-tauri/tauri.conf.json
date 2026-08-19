@@ -1,6 +1,6 @@
 {
 	"$schema": "https://schema.tauri.app/config/2",
-	"productName": "r2nova",
+	"productName": "R2nova",
 	"version": "0.1.1",
 	"identifier": "io.r2nova.app",
 	"build": {

@@ -1,6 +1,6 @@
 {
 	"app": {
-		"name": "r2nova",
+		"name": "R2nova",
 		"tagline": "Cloudflare R2 桌面客户端",
 		"updateAvailable": "有新版本 {{version}}，可用 brew upgrade r2nova 更新",
 		"commandPalette": "命令面板",
