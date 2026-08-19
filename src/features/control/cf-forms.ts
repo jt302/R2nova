@@ -135,6 +135,32 @@ export function parseDomains(data: unknown): string[] {
 		.filter(Boolean);
 }
 
+export function publicBaseUrl(
+	dev: { enabled: boolean; url: string },
+	domains: string[],
+): string | null {
+	const custom = domains.find((d) => d.trim());
+	if (custom) {
+		return custom.trim();
+	}
+	if (dev.enabled && dev.url.trim()) {
+		return dev.url.trim();
+	}
+	return null;
+}
+
+export function publicObjectUrl(base: string, key: string): string {
+	const origin = base.trim().replace(/\/+$/, '');
+	const withScheme = /^https?:\/\//i.test(origin) ? origin : `https://${origin}`;
+	const path = key
+		.replace(/^\/+/, '')
+		.split('/')
+		.filter(Boolean)
+		.map((part) => encodeURIComponent(part))
+		.join('/');
+	return path ? `${withScheme}/${path}` : withScheme;
+}
+
 export function metricEntries(data: unknown): [string, string][] {
 	const rec = asRecord(data);
 	if (!rec) {

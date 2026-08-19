@@ -116,6 +116,7 @@
 		"emptyFolderBody": "Upload files, or drag local files into the window.",
 		"truncated": "Only part of this listing is loaded",
 		"needOneFile": "This works on a single file only",
+		"copyPublicUrl": "Copy public link",
 		"downloadNoFolder": "Folders cannot be downloaded. Select files only.",
 		"moveNoFolder": "Folders cannot be moved",
 		"confirmDeleteFolders": "This will delete {{files}} file(s) and {{folders}} folder(s). Everything under those folders will be deleted. Listing keys uses Class A requests. This cannot be undone."
@@ -216,7 +217,8 @@
 		"prefix": "Prefix",
 		"days": "Days",
 		"devUrl": "r2.dev public access",
-		"devUrlDesc": "When on, this bucket is readable via an r2.dev subdomain.",
+		"devUrlHint": "Append the object key to this URL. You can also copy a public link from the object list.",
+		"objectKeyPlaceholder": "{object-key}",
 		"domains": "Custom domains",
 		"domainsDesc": "Hostnames already bound to this bucket.",
 		"lock": "Bucket lock",

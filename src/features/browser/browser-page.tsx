@@ -1,4 +1,5 @@
-import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { writeText } from '@tauri-apps/plugin-clipboard-manager';
 import { open, save } from '@tauri-apps/plugin-dialog';
 import {
 	ChevronLeft,
@@ -56,6 +57,12 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import type { ObjectItem } from '@/entities/profile/types';
 import { createDropGate } from '@/features/browser/drop-gate';
 import { ObjectTable } from '@/features/browser/object-table';
+import {
+	parseDevUrl,
+	parseDomains,
+	publicBaseUrl,
+	publicObjectUrl,
+} from '@/features/control/cf-forms';
 import { api } from '@/shared/api/backend';
 import { isAppError } from '@/shared/api/tauri-invoke';
 import { queryKeys } from '@/shared/config/query-keys';
@@ -108,6 +115,28 @@ export function BrowserPage() {
 	const [loadQuote, setLoadQuote] = useState(0);
 	const destRef = useRef({ profileId, bucket, prefix, t });
 	destRef.current = { profileId, bucket, prefix, t };
+
+	const { data: profiles = [] } = useQuery({
+		queryKey: queryKeys.profiles,
+		queryFn: api.listProfiles,
+	});
+	const profile = profiles.find((p) => p.id === profileId);
+	const admin = profile?.capability === 'admin';
+	const cfEnabled = Boolean(admin && profileId && bucket);
+	const devUrlQ = useQuery({
+		queryKey: queryKeys.cf.devUrl(profileId ?? '', bucket),
+		queryFn: () => api.cfGetDevUrl(profileId ?? '', bucket),
+		enabled: cfEnabled,
+	});
+	const domainsQ = useQuery({
+		queryKey: queryKeys.cf.domains(profileId ?? '', bucket),
+		queryFn: () => api.cfListCustomDomains(profileId ?? '', bucket),
+		enabled: cfEnabled,
+	});
+	const publicBase = useMemo(
+		() => publicBaseUrl(parseDevUrl(devUrlQ.data), parseDomains(domainsQ.data)),
+		[devUrlQ.data, domainsQ.data],
+	);
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: folder change must reset selection
 	useEffect(() => {
@@ -592,6 +621,16 @@ export function BrowserPage() {
 					onDownloadTo={() => void downloadSelection(true)}
 					onRename={openRename}
 					onCopy={openCopy}
+					onCopyPublicUrl={(key) => {
+						if (!publicBase) {
+							return;
+						}
+						void writeText(publicObjectUrl(publicBase, key)).then(
+							() => toast.success(t('toast.linkCopied')),
+							fail,
+						);
+					}}
+					publicBase={publicBase}
 					onMove={openMove}
 					onDelete={requestDelete}
 					onUpload={() => void upload()}

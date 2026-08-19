@@ -52,6 +52,8 @@ type Props = {
 	onDownloadTo: () => void;
 	onRename: () => void;
 	onCopy: () => void;
+	onCopyPublicUrl?: (key: string) => void;
+	publicBase?: string | null;
 	onMove: () => void;
 	onDelete: () => void;
 	onUpload: () => void;
@@ -105,6 +107,8 @@ export function ObjectTable({
 	onDownloadTo,
 	onRename,
 	onCopy,
+	onCopyPublicUrl,
+	publicBase = null,
 	onMove,
 	onDelete,
 	onUpload,
@@ -164,9 +168,8 @@ export function ObjectTable({
 	}
 
 	const target = ctxRow;
-	const caps = selectionCaps(
-		partitionSelected(rows, contextActionKeys(selection, keys, target?.key)),
-	);
+	const actionPart = partitionSelected(rows, contextActionKeys(selection, keys, target?.key));
+	const caps = selectionCaps(actionPart);
 
 	return (
 		<div className="flex h-full min-h-0 flex-col">
@@ -348,6 +351,20 @@ export function ObjectTable({
 								>
 									{t('common.copy')}
 								</ContextMenuItem>
+								{publicBase ? (
+									<ContextMenuItem
+										disabled={!caps.canCopy}
+										title={caps.canCopy ? undefined : t('browser.needOneFile')}
+										onSelect={() => {
+											const key = actionPart.files[0];
+											if (key) {
+												onCopyPublicUrl?.(key);
+											}
+										}}
+									>
+										{t('browser.copyPublicUrl')}
+									</ContextMenuItem>
+								) : null}
 								<ContextMenuItem
 									disabled={!caps.canMove}
 									title={caps.canMove ? undefined : t('browser.moveNoFolder')}

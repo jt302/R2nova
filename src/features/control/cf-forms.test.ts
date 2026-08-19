@@ -7,6 +7,8 @@ import {
 	parseDomains,
 	parseLifecycleRules,
 	parseLockEnabled,
+	publicBaseUrl,
+	publicObjectUrl,
 } from '@/features/control/cf-forms';
 
 describe('cf form parsers', () => {
@@ -63,6 +65,22 @@ describe('cf form parsers', () => {
 			'cdn.example.com',
 			'also.test',
 		]);
+	});
+
+	it('prefers a custom domain, then enabled r2.dev', () => {
+		const dev = { enabled: true, url: 'https://pub-abc.r2.dev' };
+		expect(publicBaseUrl(dev, ['cdn.example.com'])).toBe('cdn.example.com');
+		expect(publicBaseUrl(dev, [])).toBe('https://pub-abc.r2.dev');
+		expect(publicBaseUrl({ enabled: false, url: 'https://pub-abc.r2.dev' }, [])).toBeNull();
+	});
+
+	it('builds a public object URL with encoded path segments', () => {
+		expect(publicObjectUrl('https://pub-abc.r2.dev/', 'photos/a b.png')).toBe(
+			'https://pub-abc.r2.dev/photos/a%20b.png',
+		);
+		expect(publicObjectUrl('cdn.example.com', 'v1/app.js')).toBe(
+			'https://cdn.example.com/v1/app.js',
+		);
 	});
 
 	it('treats any enabled lock rule as on', () => {

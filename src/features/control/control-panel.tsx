@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { HardDrive, Shield } from 'lucide-react';
+import { writeText } from '@tauri-apps/plugin-clipboard-manager';
+import { Copy, HardDrive, Shield } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
@@ -177,6 +178,10 @@ export function ControlPanel() {
 
 	function fail(err: unknown) {
 		toast.error(isAppError(err) ? err.message : String(err));
+	}
+
+	function copyHost(value: string) {
+		void writeText(value).then(() => toast.success(t('toast.linkCopied')), fail);
 	}
 
 	const createBucket = useMutation({
@@ -368,7 +373,6 @@ export function ControlPanel() {
 						<Card>
 							<CardHeader>
 								<CardTitle>{t('control.devUrl')}</CardTitle>
-								<CardDescription>{t('control.devUrlDesc')}</CardDescription>
 								<CardAction>
 									<Switch
 										id="dev-url"
@@ -391,11 +395,32 @@ export function ControlPanel() {
 								</CardAction>
 							</CardHeader>
 							{devParsed.url ? (
-								<CardContent>
-									<p className="text-sm">
-										<span className="text-muted-foreground">{t('control.currentUrl')}: </span>
-										{devParsed.url}
+								<CardContent className="flex flex-col gap-2">
+									<p className="flex min-w-0 items-center gap-1 text-sm">
+										<span className="shrink-0 text-muted-foreground">
+											{t('control.currentUrl')}:{' '}
+										</span>
+										<span
+											className="min-w-0 truncate font-mono select-text"
+											title={`${devParsed.url}/${t('control.objectKeyPlaceholder')}`}
+										>
+											{devParsed.url}/
+											<span className="text-muted-foreground">
+												{t('control.objectKeyPlaceholder')}
+											</span>
+										</span>
+										<Button
+											type="button"
+											variant="ghost"
+											size="icon-xs"
+											className="shrink-0"
+											aria-label={t('common.copy')}
+											onClick={() => copyHost(devParsed.url)}
+										>
+											<Copy />
+										</Button>
 									</p>
+									<p className="text-xs text-muted-foreground">{t('control.devUrlHint')}</p>
 								</CardContent>
 							) : null}
 						</Card>
@@ -413,7 +438,21 @@ export function ControlPanel() {
 								) : (
 									<ul className="flex flex-col gap-1 text-sm">
 										{domainList.map((d) => (
-											<li key={d}>{d}</li>
+											<li key={d} className="flex min-w-0 items-center gap-1">
+												<span className="min-w-0 truncate font-mono select-text" title={d}>
+													{d}
+												</span>
+												<Button
+													type="button"
+													variant="ghost"
+													size="icon-xs"
+													className="shrink-0"
+													aria-label={t('common.copy')}
+													onClick={() => copyHost(d)}
+												>
+													<Copy />
+												</Button>
+											</li>
 										))}
 									</ul>
 								)}

@@ -116,6 +116,7 @@
 		"emptyFolderBody": "上传文件，或把本地文件拖进窗口。",
 		"truncated": "当前只加载了部分对象",
 		"needOneFile": "只能对单个文件使用",
+		"copyPublicUrl": "复制公开链接",
 		"downloadNoFolder": "不能下载文件夹，请只选择文件",
 		"moveNoFolder": "不能移动文件夹",
 		"confirmDeleteFolders": "将删除 {{files}} 个文件和 {{folders}} 个文件夹。文件夹内的全部对象都会删除，列举这些对象会消耗 Class A 请求。此操作不可恢复。"
@@ -216,7 +217,8 @@
 		"prefix": "前缀",
 		"days": "天数",
 		"devUrl": "r2.dev 公开访问",
-		"devUrlDesc": "打开后该桶可通过 r2.dev 子域公开读取。",
+		"devUrlHint": "把对象键接到地址后面。也可在对象列表右键复制公开链接。",
+		"objectKeyPlaceholder": "{object-key}",
 		"domains": "自定义域名",
 		"domainsDesc": "已绑定到此桶的自定义主机名。",
 		"lock": "Bucket Lock",
