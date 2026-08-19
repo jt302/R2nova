@@ -122,8 +122,12 @@ pub fn init_keyring() -> AppResult<()> {
 
 #[cfg(test)]
 pub fn init_mock_keyring() -> AppResult<()> {
-	let store = keyring_core::mock::Store::new().map_err(|e| AppError::Keyring(e.to_string()))?;
-	keyring_core::set_default_store(store);
+	use std::sync::Once;
+	static INIT: Once = Once::new();
+	INIT.call_once(|| {
+		let store = keyring_core::mock::Store::new().expect("mock keyring store");
+		keyring_core::set_default_store(store);
+	});
 	Ok(())
 }
 
