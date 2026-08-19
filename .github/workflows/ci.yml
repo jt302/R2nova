@@ -64,3 +64,17 @@ jobs:
 
       - name: Backend cargo test
         run: cargo test --manifest-path src-tauri/Cargo.toml
+
+      - name: Build installers
+        if: github.event_name == 'push'
+        run: pnpm -s tauri build
+
+      - name: Upload installers
+        if: github.event_name == 'push'
+        uses: actions/upload-artifact@v7
+        with:
+          name: r2nova-${{ matrix.os }}
+          path: |
+            src-tauri/target/release/bundle/dmg/*.dmg
+            src-tauri/target/release/bundle/nsis/*.exe
+          if-no-files-found: error

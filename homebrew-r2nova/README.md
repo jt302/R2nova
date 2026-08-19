@@ -3,7 +3,7 @@
 Tap for the unsigned r2nova Cask (macOS 13+).
 
 ```bash
-brew tap r2nova/r2nova
+brew tap jt302/r2nova
 brew install --cask r2nova
 brew upgrade --cask r2nova
 ```

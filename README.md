@@ -27,7 +27,7 @@ r2nova runs all network and crypto in Rust (Tauri 2). Access keys never enter th
 macOS via Homebrew Cask (unsigned DMG for v1):
 
 ```bash
-brew tap r2nova/r2nova
+brew tap jt302/r2nova
 brew install --cask r2nova
 ```
 

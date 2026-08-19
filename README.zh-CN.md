@@ -27,7 +27,7 @@ Dashboard 单文件上限 300 MiB，无队列、无断点续传、文件夹上�
 macOS（v1 未签名 DMG，Homebrew Cask）：
 
 ```bash
-brew tap r2nova/r2nova
+brew tap jt302/r2nova
 brew install --cask r2nova
 ```
 
