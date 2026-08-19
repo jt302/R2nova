@@ -151,14 +151,24 @@ export function CommandPalette({
 						{t('command.themeSystem')}
 					</CommandItem>
 					<CommandItem
-						value="language"
+						value="language-zh"
 						onSelect={() => {
-							void i18n.changeLanguage(i18n.language.startsWith('zh') ? 'en-US' : 'zh-CN');
+							void i18n.changeLanguage('zh-CN');
 							onOpenChange(false);
 						}}
 					>
 						<Languages />
-						{t('command.language')}
+						{t('command.languageZh')}
+					</CommandItem>
+					<CommandItem
+						value="language-en"
+						onSelect={() => {
+							void i18n.changeLanguage('en-US');
+							onOpenChange(false);
+						}}
+					>
+						<Languages />
+						{t('command.languageEn')}
 					</CommandItem>
 				</CommandGroup>
 			</CommandList>

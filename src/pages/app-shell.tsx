@@ -162,6 +162,8 @@ export function AppShell() {
 			: theme === 'light'
 				? t('command.themeLight')
 				: t('command.themeSystem');
+	const language = i18n.language.startsWith('zh') ? 'zh-CN' : 'en-US';
+	const languageLabel = language === 'zh-CN' ? t('command.languageZh') : t('command.languageEn');
 
 	function openAdd() {
 		setEditing(null);
@@ -216,21 +218,31 @@ export function AppShell() {
 					</TooltipTrigger>
 					<TooltipContent>{t('app.commandPalette')}</TooltipContent>
 				</Tooltip>
-				<Tooltip>
-					<TooltipTrigger asChild>
-						<Button
-							variant="ghost"
-							size="icon-sm"
-							aria-label={t('command.language')}
-							onClick={() =>
-								void i18n.changeLanguage(i18n.language.startsWith('zh') ? 'en-US' : 'zh-CN')
-							}
+				<DropdownMenu>
+					<Tooltip>
+						<TooltipTrigger asChild>
+							<DropdownMenuTrigger asChild>
+								<Button variant="ghost" size="icon-sm" aria-label={t('command.language')}>
+									<Languages />
+								</Button>
+							</DropdownMenuTrigger>
+						</TooltipTrigger>
+						<TooltipContent>{languageLabel}</TooltipContent>
+					</Tooltip>
+					<DropdownMenuContent align="end">
+						<DropdownMenuRadioGroup
+							value={language}
+							onValueChange={(value) => {
+								if (value === 'zh-CN' || value === 'en-US') {
+									void i18n.changeLanguage(value);
+								}
+							}}
 						>
-							<Languages />
-						</Button>
-					</TooltipTrigger>
-					<TooltipContent>{t('command.language')}</TooltipContent>
-				</Tooltip>
+							<DropdownMenuRadioItem value="zh-CN">{t('command.languageZh')}</DropdownMenuRadioItem>
+							<DropdownMenuRadioItem value="en-US">{t('command.languageEn')}</DropdownMenuRadioItem>
+						</DropdownMenuRadioGroup>
+					</DropdownMenuContent>
+				</DropdownMenu>
 				<DropdownMenu>
 					<Tooltip>
 						<TooltipTrigger asChild>
