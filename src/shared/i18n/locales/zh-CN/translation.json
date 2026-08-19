@@ -218,5 +218,25 @@
 		"sectionDanger": "危险操作",
 		"noBucketTitle": "先选择存储桶",
 		"noBucketBody": "控制面设置针对当前桶。从侧栏选一个，或新建。"
+	},
+	"toast": {
+		"renamed": "已重命名为 {{name}}",
+		"copiedTo": "已复制到 {{dest}}",
+		"moved": "已移动 {{count}} 项",
+		"deleted": "已删除 {{count}} 项",
+		"bucketCreated": "已创建存储桶 {{name}}",
+		"bucketDeleted": "已删除存储桶 {{name}}",
+		"saved": "{{what}} 已保存",
+		"accountSaved": "账号已保存（{{capability}}）",
+		"probeOk": "凭据有效（{{capability}}）",
+		"accountDeleted": "账号已删除",
+		"multipartAborted": "已中止未完成分片",
+		"linkCopied": "链接已复制",
+		"shareFailed": "无法复制分享链接",
+		"refreshFailed": "刷新列表失败",
+		"uploadFailed": "上传失败",
+		"downloadFailed": "下载失败",
+		"listFailed": "无法加载对象列表",
+		"transferCancelFailed": "无法取消传输"
 	}
 }

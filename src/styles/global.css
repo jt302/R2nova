@@ -108,6 +108,8 @@ body,
 	background: var(--background);
 	font-size: 13px;
 	font-family: var(--font-sans);
+	-webkit-user-select: none;
+	user-select: none;
 }
 
 * {
@@ -117,6 +119,17 @@ body,
 body {
 	color: var(--foreground);
 	-webkit-font-smoothing: antialiased;
+}
+
+input,
+textarea,
+[contenteditable="true"] {
+	-webkit-user-select: text;
+	user-select: text;
+}
+
+img {
+	-webkit-user-drag: none;
 }
 
 button,

@@ -218,5 +218,25 @@
 		"sectionDanger": "Danger zone",
 		"noBucketTitle": "Select a bucket first",
 		"noBucketBody": "Control-plane settings apply to the current bucket. Pick one in the sidebar or create one."
+	},
+	"toast": {
+		"renamed": "Renamed to {{name}}",
+		"copiedTo": "Copied to {{dest}}",
+		"moved": "Moved {{count}} item(s)",
+		"deleted": "Deleted {{count}} item(s)",
+		"bucketCreated": "Bucket {{name}} created",
+		"bucketDeleted": "Bucket {{name}} deleted",
+		"saved": "{{what}} saved",
+		"accountSaved": "Account saved ({{capability}})",
+		"probeOk": "Credentials OK ({{capability}})",
+		"accountDeleted": "Account removed",
+		"multipartAborted": "Multipart upload aborted",
+		"linkCopied": "Link copied",
+		"shareFailed": "Could not copy share link",
+		"refreshFailed": "Could not refresh listing",
+		"uploadFailed": "Upload failed",
+		"downloadFailed": "Download failed",
+		"listFailed": "Could not load objects",
+		"transferCancelFailed": "Could not cancel transfer"
 	}
 }

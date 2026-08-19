@@ -1,6 +1,7 @@
 // biome-ignore-all lint/security/noDangerouslySetInnerHtml: Shiki highlighter output
 import { useQuery } from '@tanstack/react-query';
 import { convertFileSrc } from '@tauri-apps/api/core';
+import { writeText } from '@tauri-apps/plugin-clipboard-manager';
 import { FileQuestion, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -53,7 +54,7 @@ function HighlightedCode({ html }: { html: string }) {
 	return (
 		<div className="min-h-0 min-w-0 w-full flex-1 overflow-hidden">
 			<div
-				className="h-full w-full max-w-full overflow-auto p-3 [&_pre]:m-0 [&_pre]:max-w-full [&_pre]:min-h-full [&_pre]:rounded-md [&_pre]:p-4 [&_pre]:text-xs [&_pre]:leading-relaxed [&_pre]:whitespace-pre-wrap [&_pre]:break-all [&_code]:max-w-full [&_code]:whitespace-pre-wrap [&_code]:break-all"
+				className="h-full w-full max-w-full overflow-auto p-3 select-text [&_pre]:m-0 [&_pre]:max-w-full [&_pre]:min-h-full [&_pre]:rounded-md [&_pre]:p-4 [&_pre]:text-xs [&_pre]:leading-relaxed [&_pre]:whitespace-pre-wrap [&_pre]:break-all [&_code]:max-w-full [&_code]:whitespace-pre-wrap [&_code]:break-all"
 				dangerouslySetInnerHTML={{ __html: html }}
 			/>
 		</div>
@@ -221,7 +222,7 @@ export function PreviewPane({ target, onClose }: { target: PreviewTarget; onClos
 					<iframe title="pdf" src={src} className="h-full min-h-0 w-full flex-1 border-0" />
 				) : null}
 				{!loading && !error && kind === 'markdown' ? (
-					<div className="h-full min-h-0 min-w-0 w-full flex-1 overflow-auto p-4">
+					<div className="h-full min-h-0 min-w-0 w-full flex-1 overflow-auto p-4 select-text">
 						<div className="prose prose-sm max-w-none dark:prose-invert">
 							<Markdown remarkPlugins={[remarkGfm]}>{text}</Markdown>
 						</div>
@@ -260,14 +261,18 @@ export function PreviewPane({ target, onClose }: { target: PreviewTarget; onClos
 							<Button
 								variant="outline"
 								onClick={async () => {
-									const res = await api.presignGet({
-										profileId,
-										bucket,
-										key: objectKey,
-										expiresInSecs: Number(expires),
-									});
-									await navigator.clipboard.writeText(res.url);
-									toast.success(t('preview.copied'));
+									try {
+										const res = await api.presignGet({
+											profileId,
+											bucket,
+											key: objectKey,
+											expiresInSecs: Number(expires),
+										});
+										await writeText(res.url);
+										toast.success(t('toast.linkCopied'));
+									} catch (err) {
+										toast.error(isAppError(err) ? err.message : t('toast.shareFailed'));
+									}
 								}}
 							>
 								{t('common.share')}
@@ -276,7 +281,7 @@ export function PreviewPane({ target, onClose }: { target: PreviewTarget; onClos
 					</Field>
 				</FieldGroup>
 				{detail.data?.metadata?.length ? (
-					<pre className="max-h-24 overflow-auto rounded-md bg-muted p-2 font-mono text-xs">
+					<pre className="max-h-24 overflow-auto rounded-md bg-muted p-2 font-mono text-xs select-text">
 						{JSON.stringify(detail.data.metadata, null, 2)}
 					</pre>
 				) : null}

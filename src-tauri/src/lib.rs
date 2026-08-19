@@ -31,6 +31,7 @@ pub fn run() {
 		.plugin(tauri_plugin_store::Builder::new().build())
 		.plugin(tauri_plugin_log::Builder::new().build())
 		.plugin(tauri_plugin_single_instance::init(|_app, _argv, _cwd| {}))
+		.plugin(tauri_plugin_clipboard_manager::init())
 		.setup(|app| {
 			let path = commands::profiles_path(app.handle()).map_err(|e| e.to_string())?;
 			let store = creds::ProfileStore::load(&path).unwrap_or_default();
