@@ -135,8 +135,7 @@
 		"settings": "打开控制面",
 		"accounts": "打开账号",
 		"transfers": "打开传输队列",
-		"downloadDir": "设置默认下载目录",
-		"downloadDirClear": "清除默认下载目录"
+		"downloadDir": "设置默认下载目录"
 	},
 	"transfer": {
 		"queue": "传输队列",
@@ -162,7 +161,6 @@
 		"retry": "重试",
 		"downloadDir": "设置默认下载目录",
 		"downloadDirSet": "更改",
-		"downloadDirClear": "清除",
 		"downloadDirUnset": "未设置默认下载目录",
 		"concurrency": "并发",
 		"downloadTo": "下载到…",

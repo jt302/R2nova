@@ -132,11 +132,6 @@ export function TransferPage() {
 							<Button variant="outline" size="sm" onClick={() => void pickDownloadDir()}>
 								{downloadDir ? t('transfer.downloadDirSet') : t('transfer.downloadDir')}
 							</Button>
-							{downloadDir ? (
-								<Button variant="ghost" size="sm" onClick={() => setDownloadDir(null)}>
-									{t('transfer.downloadDirClear')}
-								</Button>
-							) : null}
 							{endedCount > 0 ? (
 								<Button
 									variant="outline"

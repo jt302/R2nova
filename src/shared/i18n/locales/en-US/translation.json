@@ -135,8 +135,7 @@
 		"settings": "Open control plane",
 		"accounts": "Open accounts",
 		"transfers": "Open transfer queue",
-		"downloadDir": "Set default download folder",
-		"downloadDirClear": "Clear default download folder"
+		"downloadDir": "Set default download folder"
 	},
 	"transfer": {
 		"queue": "Transfer queue",
@@ -162,7 +161,6 @@
 		"retry": "Retry",
 		"downloadDir": "Set default download folder",
 		"downloadDirSet": "Change",
-		"downloadDirClear": "Clear",
 		"downloadDirUnset": "No default download folder",
 		"concurrency": "Concurrency",
 		"downloadTo": "Download to…",
