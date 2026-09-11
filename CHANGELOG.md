@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.6
+
+- Fix blank text and Markdown previews in packaged builds; preview read failures now show an error with Retry
+
 ## 0.1.5
 
 - Set an account avatar from emoji presets or an uploaded image
