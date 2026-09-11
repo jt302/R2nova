@@ -253,7 +253,7 @@
 		"lock": "Bucket lock",
 		"lockDesc": "A lock can block overwrites or deletes. See Cloudflare for rule details.",
 		"metrics": "Usage",
-		"metricsDesc": "Account-level storage and request usage from Cloudflare REST (cached).",
+		"metricsDesc": "Account-level storage from Cloudflare REST (cached).",
 		"multipart": "Incomplete uploads",
 		"multipartDesc": "Unfinished multipart uploads keep costing storage. Abort them when unused.",
 		"events": "Event notifications",
@@ -274,7 +274,11 @@
 		"sectionRules": "Rules",
 		"sectionDanger": "Danger zone",
 		"noBucketTitle": "Select a bucket first",
-		"noBucketBody": "Bucket settings apply to the current bucket. Pick one in the sidebar or create one."
+		"noBucketBody": "Bucket settings apply to the current bucket. Pick one in the sidebar or create one.",
+		"storageObjects": "Objects",
+		"storageSize": "Storage",
+		"storageUploading": "Incomplete uploads (uploaded)",
+		"storageIa": "Infrequent Access"
 	},
 	"toast": {
 		"renamed": "Renamed to {{name}}",

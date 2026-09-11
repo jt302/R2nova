@@ -161,15 +161,51 @@ export function publicObjectUrl(base: string, key: string): string {
 	return path ? `${withScheme}/${path}` : withScheme;
 }
 
-export function metricEntries(data: unknown): [string, string][] {
+export type StorageSlice = {
+	objects: number;
+	bytes: number;
+};
+
+export type AccountMetrics = {
+	standard: {
+		published: StorageSlice;
+		uploaded: StorageSlice;
+	};
+	infrequentAccess: {
+		published: StorageSlice;
+		uploaded: StorageSlice;
+	};
+};
+
+function asNumber(value: unknown): number {
+	return typeof value === 'number' && Number.isFinite(value) ? value : 0;
+}
+
+function parseSlice(value: unknown): StorageSlice {
+	const rec = asRecord(value) ?? {};
+	return {
+		objects: asNumber(rec.objects),
+		bytes: asNumber(rec.payloadSize) + asNumber(rec.metadataSize),
+	};
+}
+
+function parseClass(value: unknown): { published: StorageSlice; uploaded: StorageSlice } {
+	const rec = asRecord(value) ?? {};
+	return {
+		published: parseSlice(rec.published),
+		uploaded: parseSlice(rec.uploaded),
+	};
+}
+
+export function parseAccountMetrics(data: unknown): AccountMetrics | null {
 	const rec = asRecord(data);
 	if (!rec) {
-		return [];
+		return null;
 	}
-	return Object.entries(rec)
-		.filter(([, value]) => value !== null && typeof value !== 'object')
-		.slice(0, 12)
-		.map(([key, value]) => [key, String(value)]);
+	return {
+		standard: parseClass(rec.standard),
+		infrequentAccess: parseClass(rec.infrequentAccess),
+	};
 }
 
 export function parseLockEnabled(data: unknown): boolean {

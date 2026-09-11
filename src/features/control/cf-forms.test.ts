@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
 	corsToPayload,
 	lifecycleToPayload,
+	parseAccountMetrics,
 	parseCorsRules,
 	parseDevUrl,
 	parseDomains,
@@ -86,5 +87,34 @@ describe('cf form parsers', () => {
 	it('treats any enabled lock rule as on', () => {
 		expect(parseLockEnabled({ rules: [{ enabled: false }, { enabled: true }] })).toBe(true);
 		expect(parseLockEnabled({ enabled: false })).toBe(false);
+	});
+
+	it('parses nested r2/metrics storage slices', () => {
+		expect(
+			parseAccountMetrics({
+				standard: {
+					published: { metadataSize: 100, objects: 2422, payloadSize: 75_130_000 },
+					uploaded: { metadataSize: 0, objects: 2, payloadSize: 4096 },
+				},
+				infrequentAccess: {
+					published: { metadataSize: 10, objects: 3, payloadSize: 2048 },
+					uploaded: { metadataSize: 0, objects: 0, payloadSize: 0 },
+				},
+			}),
+		).toEqual({
+			standard: {
+				published: { objects: 2422, bytes: 75_130_100 },
+				uploaded: { objects: 2, bytes: 4096 },
+			},
+			infrequentAccess: {
+				published: { objects: 3, bytes: 2058 },
+				uploaded: { objects: 0, bytes: 0 },
+			},
+		});
+	});
+
+	it('returns null for non-object metrics payloads', () => {
+		expect(parseAccountMetrics(null)).toBeNull();
+		expect(parseAccountMetrics([])).toBeNull();
 	});
 });

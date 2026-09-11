@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
 	fileKind,
 	formatBytes,
+	formatBytesSi,
 	formatModified,
 	joinKey,
 	normalizePrefix,
@@ -30,6 +31,11 @@ describe('object key helpers', () => {
 		expect(formatBytes(2048)).toBe('2.0 KB');
 		expect(formatBytes(Number.NaN)).toBe('0 B');
 		expect(formatBytes(undefined as unknown as number)).toBe('0 B');
+	});
+
+	it('formats SI bytes like the Cloudflare dashboard', () => {
+		expect(formatBytesSi(75_130_000)).toBe('75.13 MB');
+		expect(formatBytesSi(512)).toBe('512 B');
 	});
 
 	it('formats modified timestamps', () => {

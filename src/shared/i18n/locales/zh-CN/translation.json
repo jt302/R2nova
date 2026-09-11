@@ -253,7 +253,7 @@
 		"lock": "Bucket Lock",
 		"lockDesc": "锁定后可阻止覆盖或删除，具体规则见 Cloudflare。",
 		"metrics": "用量",
-		"metricsDesc": "账号级存储与请求用量（来自 Cloudflare REST，已缓存）。",
+		"metricsDesc": "账号级存储用量（来自 Cloudflare REST，已缓存）。",
 		"multipart": "未完成分片",
 		"multipartDesc": "未 Complete 的分片会持续产生存储费用，应及时中止。",
 		"events": "事件通知",
@@ -274,7 +274,11 @@
 		"sectionRules": "规则",
 		"sectionDanger": "危险操作",
 		"noBucketTitle": "先选择存储桶",
-		"noBucketBody": "存储桶设置针对当前桶。从侧栏选一个，或新建。"
+		"noBucketBody": "存储桶设置针对当前桶。从侧栏选一个，或新建。",
+		"storageObjects": "对象数",
+		"storageSize": "存储大小",
+		"storageUploading": "未完成上传（uploaded）",
+		"storageIa": "Infrequent Access"
 	},
 	"toast": {
 		"renamed": "已重命名为 {{name}}",

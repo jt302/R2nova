@@ -43,7 +43,7 @@ import {
 	type LifecycleRuleForm,
 	lifecycleToPayload,
 	lockPayload,
-	metricEntries,
+	parseAccountMetrics,
 	parseCorsRules,
 	parseDevUrl,
 	parseDomains,
@@ -55,8 +55,22 @@ import {
 import { api } from '@/shared/api/backend';
 import { isAppError } from '@/shared/api/tauri-invoke';
 import { queryKeys } from '@/shared/config/query-keys';
+import { formatBytesSi } from '@/shared/lib/object-key';
 import { useCurrentLocation, useNavStore } from '@/store/nav';
 import { PageHeader } from '@/widgets/page-header';
+
+function MetricTile({ label, value }: { label: string; value: string }) {
+	return (
+		<div className="rounded-lg border bg-muted/30 p-3">
+			<dt className="text-xs text-muted-foreground">{label}</dt>
+			<dd className="mt-1 text-sm font-medium tabular-nums">{value}</dd>
+		</div>
+	);
+}
+
+function errorMessage(err: unknown): string {
+	return isAppError(err) ? err.message : String(err);
+}
 
 function AdvancedJson({
 	data,
@@ -234,7 +248,35 @@ export function ControlPanel() {
 
 	const devParsed = parseDevUrl(dev.data);
 	const domainList = parseDomains(domains.data);
-	const metricsList = metricEntries(metrics.data);
+	const accountMetrics = parseAccountMetrics(metrics.data);
+	const published = accountMetrics
+		? {
+				objects:
+					accountMetrics.standard.published.objects +
+					accountMetrics.infrequentAccess.published.objects,
+				bytes:
+					accountMetrics.standard.published.bytes + accountMetrics.infrequentAccess.published.bytes,
+			}
+		: null;
+	const uploaded = accountMetrics
+		? {
+				objects:
+					accountMetrics.standard.uploaded.objects +
+					accountMetrics.infrequentAccess.uploaded.objects,
+				bytes:
+					accountMetrics.standard.uploaded.bytes + accountMetrics.infrequentAccess.uploaded.bytes,
+			}
+		: null;
+	const ia = accountMetrics
+		? {
+				objects:
+					accountMetrics.infrequentAccess.published.objects +
+					accountMetrics.infrequentAccess.uploaded.objects,
+				bytes:
+					accountMetrics.infrequentAccess.published.bytes +
+					accountMetrics.infrequentAccess.uploaded.bytes,
+			}
+		: null;
 	const lockOn = parseLockEnabled(lock.data);
 
 	return (
@@ -293,19 +335,35 @@ export function ControlPanel() {
 								<CardTitle>{t('control.metrics')}</CardTitle>
 								<CardDescription>{t('control.metricsDesc')}</CardDescription>
 							</CardHeader>
-							<CardContent>
+							<CardContent className="flex flex-col gap-4">
 								{metrics.isLoading ? (
 									<p className="text-sm text-muted-foreground">{t('common.loading')}</p>
-								) : metricsList.length === 0 ? (
+								) : metrics.isError ? (
+									<p className="text-sm text-muted-foreground">{errorMessage(metrics.error)}</p>
+								) : !published ? (
 									<p className="text-sm text-muted-foreground">{t('common.empty')}</p>
 								) : (
 									<dl className="grid grid-cols-2 gap-3">
-										{metricsList.map(([key, value]) => (
-											<div key={key} className="rounded-lg border bg-muted/30 p-3">
-												<dt className="text-xs text-muted-foreground">{key}</dt>
-												<dd className="mt-1 text-sm font-medium tabular-nums">{value}</dd>
-											</div>
-										))}
+										<MetricTile
+											label={t('control.storageObjects')}
+											value={published.objects.toLocaleString()}
+										/>
+										<MetricTile
+											label={t('control.storageSize')}
+											value={formatBytesSi(published.bytes)}
+										/>
+										{uploaded && (uploaded.objects > 0 || uploaded.bytes > 0) ? (
+											<MetricTile
+												label={t('control.storageUploading')}
+												value={`${uploaded.objects.toLocaleString()} · ${formatBytesSi(uploaded.bytes)}`}
+											/>
+										) : null}
+										{ia && (ia.objects > 0 || ia.bytes > 0) ? (
+											<MetricTile
+												label={t('control.storageIa')}
+												value={`${ia.objects.toLocaleString()} · ${formatBytesSi(ia.bytes)}`}
+											/>
+										) : null}
 									</dl>
 								)}
 							</CardContent>

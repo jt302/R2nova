@@ -37,6 +37,23 @@ export function formatBytes(n: number): string {
 	return `${v.toFixed(v >= 10 ? 0 : 1)} ${units[i]}`;
 }
 
+export function formatBytesSi(n: number): string {
+	if (!Number.isFinite(n)) {
+		return '0 B';
+	}
+	if (n < 1000) {
+		return `${n} B`;
+	}
+	const units = ['KB', 'MB', 'GB', 'TB'];
+	let v = n / 1000;
+	let i = 0;
+	while (v >= 1000 && i < units.length - 1) {
+		v /= 1000;
+		i += 1;
+	}
+	return `${v.toFixed(2)} ${units[i]}`;
+}
+
 export function fileKind(key: string): 'image' | 'video' | 'pdf' | 'text' | 'markdown' | 'other' {
 	const ext = key.split('.').pop()?.toLowerCase() ?? '';
 	if (['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'bmp', 'avif'].includes(ext)) {
