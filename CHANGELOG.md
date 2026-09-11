@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.7
+
+- Create buckets with official location hint, jurisdiction, and default storage class options
+
 ## 0.1.6
 
 - Fix blank text and Markdown previews in packaged builds; preview read failures now show an error with Retry
