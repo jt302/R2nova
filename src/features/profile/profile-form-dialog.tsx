@@ -130,12 +130,12 @@ export function ProfileFormDialog({
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
-			<DialogContent className="sm:max-w-lg">
-				<DialogHeader>
+			<DialogContent className="flex max-h-[calc(100dvh-2rem)] flex-col overflow-hidden p-0 sm:max-w-lg">
+				<DialogHeader className="px-6 pt-6">
 					<DialogTitle>{editing ? t('profile.edit') : t('profile.add')}</DialogTitle>
 					<DialogDescription>{t('profile.emptyBody')}</DialogDescription>
 				</DialogHeader>
-				<FieldGroup className="gap-4">
+				<FieldGroup className="min-h-0 gap-4 overflow-y-auto px-6">
 					<Field>
 						<FieldLabel htmlFor="profile-name">{t('profile.name')}</FieldLabel>
 						<Input
@@ -198,7 +198,7 @@ export function ProfileFormDialog({
 						<Button
 							type="button"
 							variant="link"
-							className="h-auto self-start p-0"
+							className="h-auto justify-start p-0"
 							onClick={() => void openUrl('https://dash.cloudflare.com/profile/api-tokens')}
 						>
 							{t('profile.createToken')}
@@ -242,7 +242,7 @@ export function ProfileFormDialog({
 						</FieldError>
 					) : null}
 				</FieldGroup>
-				<DialogFooter>
+				<DialogFooter className="px-6 pb-6">
 					<Button variant="outline" onClick={() => onOpenChange(false)}>
 						{t('common.cancel')}
 					</Button>
