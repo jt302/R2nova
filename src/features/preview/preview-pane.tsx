@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { convertFileSrc } from '@tauri-apps/api/core';
 import { writeText } from '@tauri-apps/plugin-clipboard-manager';
 import { FileQuestion, X } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { type ComponentProps, isValidElement, type ReactNode, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -32,6 +32,7 @@ import { cn } from '@/lib/utils';
 import { api } from '@/shared/api/backend';
 import { isAppError } from '@/shared/api/tauri-invoke';
 import { queryKeys } from '@/shared/config/query-keys';
+import { externalHref, fenceLanguage } from '@/shared/lib/markdown';
 import { fileKind, formatBytes, formatModified } from '@/shared/lib/object-key';
 import type { PreviewTarget } from '@/shared/lib/preview';
 
@@ -48,6 +49,93 @@ function isRemoteMedia(kind: ReturnType<typeof fileKind>, key: string): boolean 
 
 function isTextKind(kind: ReturnType<typeof fileKind>): boolean {
 	return kind === 'text' || kind === 'markdown';
+}
+
+async function highlightCode(body: string, lang: string): Promise<string> {
+	const { codeToHtml } = await import('shiki');
+	const mapped = lang === 'jsonc' || lang === 'ndjson' ? 'json' : lang || 'txt';
+	const source = body.slice(0, 200_000);
+	try {
+		return await codeToHtml(source, {
+			lang: mapped,
+			theme: 'github-dark',
+		});
+	} catch {
+		return await codeToHtml(source, {
+			lang: 'txt',
+			theme: 'github-dark',
+		});
+	}
+}
+
+function fenceFromPre(children: ReactNode): { lang: string; text: string } {
+	const child = Array.isArray(children) ? children[0] : children;
+	if (!isValidElement<{ className?: string; children?: ReactNode }>(child)) {
+		return { lang: 'txt', text: typeof children === 'string' ? children : '' };
+	}
+	const raw = child.props.children;
+	const text =
+		typeof raw === 'string' ? raw : Array.isArray(raw) ? raw.join('') : String(raw ?? '');
+	return { lang: fenceLanguage(child.props.className) ?? 'txt', text };
+}
+
+function MarkdownCodeBlock({
+	children,
+	node: _node,
+	...props
+}: ComponentProps<'pre'> & { node?: unknown }) {
+	const { lang, text } = fenceFromPre(children);
+	const [html, setHtml] = useState('');
+
+	useEffect(() => {
+		let cancelled = false;
+		setHtml('');
+		void highlightCode(text, lang).then((next) => {
+			if (!cancelled) {
+				setHtml(next);
+			}
+		});
+		return () => {
+			cancelled = true;
+		};
+	}, [lang, text]);
+
+	if (html) {
+		return (
+			<div
+				className="not-prose my-4 overflow-x-auto [&_pre]:m-0 [&_pre]:rounded-md [&_pre]:p-4 [&_pre]:text-xs [&_pre]:leading-relaxed"
+				dangerouslySetInnerHTML={{ __html: html }}
+			/>
+		);
+	}
+
+	return <pre {...props}>{children}</pre>;
+}
+
+function MarkdownLink({
+	href,
+	children,
+	node: _node,
+	...props
+}: ComponentProps<'a'> & { node?: unknown }) {
+	if (externalHref(href)) {
+		return (
+			<a {...props} href={href} target="_blank" rel="noopener noreferrer">
+				{children}
+			</a>
+		);
+	}
+	return (
+		<a
+			{...props}
+			href={href}
+			onClick={(event) => {
+				event.preventDefault();
+			}}
+		>
+			{children}
+		</a>
+	);
 }
 
 function HighlightedCode({ html }: { html: string }) {
@@ -120,22 +208,7 @@ export function PreviewPane({ target, onClose }: { target: PreviewTarget; onClos
 				setText(body);
 				return;
 			}
-			const { codeToHtml } = await import('shiki');
-			const lang = extOf(objectKey);
-			const mapped = lang === 'jsonc' || lang === 'ndjson' ? 'json' : lang || 'txt';
-			let highlighted = '';
-			try {
-				highlighted = await codeToHtml(body.slice(0, 200_000), {
-					lang: mapped,
-					theme: 'github-dark',
-				});
-			} catch {
-				highlighted = await codeToHtml(body.slice(0, 200_000), {
-					lang: 'txt',
-					theme: 'github-dark',
-				});
-			}
-			setHtml(highlighted);
+			setHtml(await highlightCode(body, extOf(objectKey)));
 		})();
 	}, [file.data, kind, objectKey, textLike]);
 
@@ -223,8 +296,13 @@ export function PreviewPane({ target, onClose }: { target: PreviewTarget; onClos
 				) : null}
 				{!loading && !error && kind === 'markdown' ? (
 					<div className="h-full min-h-0 min-w-0 w-full flex-1 overflow-auto p-4 select-text">
-						<div className="prose prose-sm max-w-none dark:prose-invert">
-							<Markdown remarkPlugins={[remarkGfm]}>{text}</Markdown>
+						<div className="prose prose-sm max-w-none">
+							<Markdown
+								remarkPlugins={[remarkGfm]}
+								components={{ a: MarkdownLink, pre: MarkdownCodeBlock }}
+							>
+								{text}
+							</Markdown>
 						</div>
 					</div>
 				) : null}
