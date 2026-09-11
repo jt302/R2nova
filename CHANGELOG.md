@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.5
+
+- Set an account avatar from emoji presets or an uploaded image
+
 ## 0.1.4
 
 - Linux x86_64 packages: `.deb`, `.rpm`, and AppImage built on Ubuntu 22.04
