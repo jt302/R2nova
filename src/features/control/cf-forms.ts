@@ -242,3 +242,18 @@ export function stringifyJson(data: unknown): string {
 export function parseJson(text: string): unknown {
 	return JSON.parse(text) as unknown;
 }
+
+export type BucketNameIssue = 'ok' | 'length' | 'chars' | 'hyphen';
+
+export function validateBucketName(name: string): BucketNameIssue {
+	if (name.length < 3 || name.length > 63) {
+		return 'length';
+	}
+	if (!/^[a-z0-9-]+$/.test(name)) {
+		return 'chars';
+	}
+	if (name.startsWith('-') || name.endsWith('-')) {
+		return 'hyphen';
+	}
+	return 'ok';
+}

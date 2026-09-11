@@ -10,6 +10,7 @@ import {
 	parseLockEnabled,
 	publicBaseUrl,
 	publicObjectUrl,
+	validateBucketName,
 } from '@/features/control/cf-forms';
 
 describe('cf form parsers', () => {
@@ -116,5 +117,15 @@ describe('cf form parsers', () => {
 	it('returns null for non-object metrics payloads', () => {
 		expect(parseAccountMetrics(null)).toBeNull();
 		expect(parseAccountMetrics([])).toBeNull();
+	});
+
+	it('validates R2 bucket names', () => {
+		expect(validateBucketName('ab')).toBe('length');
+		expect(validateBucketName('a'.repeat(64))).toBe('length');
+		expect(validateBucketName('My-Bucket')).toBe('chars');
+		expect(validateBucketName('my_bucket')).toBe('chars');
+		expect(validateBucketName('-logs')).toBe('hyphen');
+		expect(validateBucketName('logs-')).toBe('hyphen');
+		expect(validateBucketName('my-bucket-1')).toBe('ok');
 	});
 });

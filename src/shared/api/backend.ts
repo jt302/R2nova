@@ -3,12 +3,14 @@ import type {
 	CostQuote,
 	CostSnapshot,
 	ListObjectsPage,
+	LocationHint,
 	MultipartUploadItem,
 	ObjectDetail,
 	OpsUsage,
 	PresignResult,
 	Profile,
 	ProfileAvatar,
+	StorageClass,
 	TransferProgress,
 } from '@/entities/profile/types';
 import { tauriInvoke } from '@/shared/api/tauri-invoke';
@@ -128,8 +130,12 @@ export const api = {
 		tauriInvoke<number>('cost_estimate', { classA, classB }),
 	appVersion: () => tauriInvoke<string>('app_version'),
 	installKind: () => tauriInvoke<'native' | 'appimage' | 'linux-pkg'>('install_kind'),
-	cfCreateBucket: (profileId: string, name: string) =>
-		tauriInvoke<void>('cf_create_bucket', { profileId, name }),
+	cfCreateBucket: (args: {
+		profileId: string;
+		name: string;
+		locationHint?: LocationHint | null;
+		storageClass?: StorageClass | null;
+	}) => tauriInvoke<void>('cf_create_bucket', args),
 	cfDeleteBucket: (profileId: string, name: string) =>
 		tauriInvoke<void>('cf_delete_bucket', { profileId, name }),
 	cfGetCors: (profileId: string, bucket: string) =>

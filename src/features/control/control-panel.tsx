@@ -53,6 +53,7 @@ import {
 	parseLockEnabled,
 	stringifyJson,
 } from '@/features/control/cf-forms';
+import { CreateBucketDialog } from '@/features/control/create-bucket-dialog';
 import { api } from '@/shared/api/backend';
 import { isAppError } from '@/shared/api/tauri-invoke';
 import { queryKeys } from '@/shared/config/query-keys';
@@ -137,7 +138,7 @@ export function ControlPanel({ onEditProfile }: { onEditProfile?: () => void }) 
 	const profile = profiles.find((p) => p.id === profileId);
 	const admin = profile?.capability === 'admin';
 	const [section, setSection] = useState('overview');
-	const [newBucket, setNewBucket] = useState('');
+	const [createOpen, setCreateOpen] = useState(false);
 	const [deleteOpen, setDeleteOpen] = useState(false);
 	const [corsRules, setCorsRules] = useState<CorsRuleForm[]>(parseCorsRules(null));
 	const [lifeRules, setLifeRules] = useState<LifecycleRuleForm[]>(parseLifecycleRules(null));
@@ -203,17 +204,6 @@ export function ControlPanel({ onEditProfile }: { onEditProfile?: () => void }) 
 	function copyHost(value: string) {
 		void writeText(value).then(() => toast.success(t('toast.linkCopied')), fail);
 	}
-
-	const createBucket = useMutation({
-		mutationFn: () => api.cfCreateBucket(profileId ?? '', newBucket.trim()),
-		onSuccess: () => {
-			void qc.invalidateQueries({ queryKey: queryKeys.buckets(profileId ?? '') });
-			go({ bucket: newBucket.trim(), prefix: '' });
-			toast.success(t('toast.bucketCreated', { name: newBucket.trim() }));
-			setNewBucket('');
-		},
-		onError: fail,
-	});
 
 	const deleteBucket = useMutation({
 		mutationFn: () => api.cfDeleteBucket(profileId ?? '', bucket),
@@ -314,25 +304,7 @@ export function ControlPanel({ onEditProfile }: { onEditProfile?: () => void }) 
 								<CardDescription>{t('control.createBucketDesc')}</CardDescription>
 							</CardHeader>
 							<CardContent>
-								<FieldGroup className="gap-3">
-									<Field orientation="horizontal">
-										<FieldLabel htmlFor="create-bucket" className="sr-only">
-											{t('control.bucketName')}
-										</FieldLabel>
-										<Input
-											id="create-bucket"
-											value={newBucket}
-											onChange={(e) => setNewBucket(e.target.value)}
-											placeholder={t('control.bucketName')}
-										/>
-										<Button
-											disabled={!newBucket.trim() || createBucket.isPending}
-											onClick={() => createBucket.mutate()}
-										>
-											{t('common.save')}
-										</Button>
-									</Field>
-								</FieldGroup>
+								<Button onClick={() => setCreateOpen(true)}>{t('control.createBucket')}</Button>
 							</CardContent>
 						</Card>
 
@@ -888,6 +860,10 @@ export function ControlPanel({ onEditProfile }: { onEditProfile?: () => void }) 
 					</TabsContent>
 				</Tabs>
 			</div>
+
+			{profile ? (
+				<CreateBucketDialog open={createOpen} onOpenChange={setCreateOpen} profile={profile} />
+			) : null}
 
 			<Dialog
 				open={deleteOpen}

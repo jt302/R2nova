@@ -2,7 +2,7 @@ use crate::commands::{load_profile, require_admin};
 use crate::cost::{summarize_actions, OpsUsage};
 use crate::creds::get_secret;
 use crate::error::AppResult;
-use crate::models::CfBucketInfo;
+use crate::models::{CfBucketInfo, LocationHint, StorageClass};
 use crate::state::AppState;
 use chrono::{SecondsFormat, Utc};
 use serde_json::Value;
@@ -30,12 +30,21 @@ pub async fn cf_create_bucket(
 	state: State<'_, AppState>,
 	profile_id: String,
 	name: String,
+	location_hint: Option<LocationHint>,
+	storage_class: Option<StorageClass>,
 ) -> AppResult<()> {
 	let profile = load_profile(&state, &profile_id).await?;
 	require_admin(&profile).await?;
 	state
 		.cf
-		.create_bucket(&token(&profile_id).await?, &profile.account_id, &name)
+		.create_bucket(
+			&token(&profile_id).await?,
+			&profile.account_id,
+			&name,
+			profile.jurisdiction,
+			location_hint,
+			storage_class,
+		)
 		.await
 }
 

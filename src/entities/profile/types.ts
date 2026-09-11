@@ -1,5 +1,9 @@
 export type Jurisdiction = 'default' | 'eu' | 'fedramp';
+export type LocationHint = 'wnam' | 'enam' | 'weur' | 'eeur' | 'apac' | 'oc';
+export type StorageClass = 'standard' | 'infrequentAccess';
 export type TokenCapability = 'unknown' | 'invalid' | 'object' | 'admin';
+
+export const LOCATION_HINTS: LocationHint[] = ['wnam', 'enam', 'weur', 'eeur', 'apac', 'oc'];
 
 export type ProfileAvatar = { kind: 'emoji'; value: string } | { kind: 'image'; path: string };
 

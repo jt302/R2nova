@@ -1,28 +1,16 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { HardDrive, Plus, Search } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { toast } from 'sonner';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import {
-	Dialog,
-	DialogContent,
-	DialogDescription,
-	DialogFooter,
-	DialogHeader,
-	DialogTitle,
-} from '@/components/ui/dialog';
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/components/ui/empty';
-import { Field, FieldGroup, FieldLabel } from '@/components/ui/field';
-import { Input } from '@/components/ui/input';
 import { InputGroup, InputGroupAddon, InputGroupInput } from '@/components/ui/input-group';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Spinner } from '@/components/ui/spinner';
+import { CreateBucketDialog } from '@/features/control/create-bucket-dialog';
 import { cn } from '@/lib/utils';
 import { api } from '@/shared/api/backend';
-import { isAppError } from '@/shared/api/tauri-invoke';
 import { queryKeys } from '@/shared/config/query-keys';
 import { useCurrentLocation, useNavStore } from '@/store/nav';
 import { CapabilityBadge } from '@/widgets/capability-badge';
@@ -30,14 +18,12 @@ import { ProfileSwitcher } from '@/widgets/profile-switcher';
 
 export function BucketSidebar({ onAdd, onManage }: { onAdd: () => void; onManage: () => void }) {
 	const { t } = useTranslation();
-	const qc = useQueryClient();
 	const profileId = useNavStore((s) => s.profileId);
 	const go = useNavStore((s) => s.go);
 	const loc = useCurrentLocation();
 	const bucket = loc.bucket;
 	const [filter, setFilter] = useState('');
 	const [createOpen, setCreateOpen] = useState(false);
-	const [newName, setNewName] = useState('');
 
 	const { data: profiles = [] } = useQuery({
 		queryKey: queryKeys.profiles,
@@ -56,18 +42,6 @@ export function BucketSidebar({ onAdd, onManage }: { onAdd: () => void; onManage
 		const q = filter.toLowerCase();
 		return (buckets.data ?? []).filter((b) => !q || b.name.toLowerCase().includes(q));
 	}, [buckets.data, filter]);
-
-	const create = useMutation({
-		mutationFn: () => api.cfCreateBucket(profileId ?? '', newName.trim()),
-		onSuccess: () => {
-			void qc.invalidateQueries({ queryKey: queryKeys.buckets(profileId ?? '') });
-			go({ bucket: newName.trim(), prefix: '' });
-			toast.success(t('toast.bucketCreated', { name: newName.trim() }));
-			setCreateOpen(false);
-			setNewName('');
-		},
-		onError: (err) => toast.error(isAppError(err) ? err.message : String(err)),
-	});
 
 	return (
 		<div className="flex h-full min-h-0 flex-col bg-sidebar text-sidebar-foreground">
@@ -145,38 +119,9 @@ export function BucketSidebar({ onAdd, onManage }: { onAdd: () => void; onManage
 					</Button>
 				</div>
 			) : null}
-			<Dialog open={createOpen} onOpenChange={setCreateOpen}>
-				<DialogContent>
-					<DialogHeader>
-						<DialogTitle>{t('control.createBucket')}</DialogTitle>
-						<DialogDescription>{t('control.createBucketDesc')}</DialogDescription>
-					</DialogHeader>
-					<FieldGroup className="gap-4">
-						<Field>
-							<FieldLabel htmlFor="new-bucket">{t('control.bucketName')}</FieldLabel>
-							<Input
-								id="new-bucket"
-								value={newName}
-								onChange={(e) => setNewName(e.target.value)}
-								onKeyDown={(e) => {
-									if (e.key === 'Enter' && newName.trim()) {
-										create.mutate();
-									}
-								}}
-							/>
-						</Field>
-					</FieldGroup>
-					<DialogFooter>
-						<Button variant="outline" onClick={() => setCreateOpen(false)}>
-							{t('common.cancel')}
-						</Button>
-						<Button disabled={!newName.trim() || create.isPending} onClick={() => create.mutate()}>
-							{create.isPending ? <Spinner data-icon="inline-start" /> : null}
-							{t('common.save')}
-						</Button>
-					</DialogFooter>
-				</DialogContent>
-			</Dialog>
+			{profile ? (
+				<CreateBucketDialog open={createOpen} onOpenChange={setCreateOpen} profile={profile} />
+			) : null}
 		</div>
 	);
 }

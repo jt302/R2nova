@@ -18,12 +18,51 @@ impl Jurisdiction {
 		}
 	}
 
-	#[allow(dead_code)]
 	pub fn as_str(self) -> &'static str {
 		match self {
 			Self::Default => "default",
 			Self::Eu => "eu",
 			Self::Fedramp => "fedramp",
+		}
+	}
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum LocationHint {
+	Wnam,
+	Enam,
+	Weur,
+	Eeur,
+	Apac,
+	Oc,
+}
+
+impl LocationHint {
+	pub fn as_str(self) -> &'static str {
+		match self {
+			Self::Wnam => "wnam",
+			Self::Enam => "enam",
+			Self::Weur => "weur",
+			Self::Eeur => "eeur",
+			Self::Apac => "apac",
+			Self::Oc => "oc",
+		}
+	}
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum StorageClass {
+	Standard,
+	InfrequentAccess,
+}
+
+impl StorageClass {
+	pub fn api_value(self) -> &'static str {
+		match self {
+			Self::Standard => "Standard",
+			Self::InfrequentAccess => "InfrequentAccess",
 		}
 	}
 }

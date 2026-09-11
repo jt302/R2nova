@@ -1,5 +1,5 @@
 use crate::error::{AppError, AppResult};
-use crate::models::CfBucketInfo;
+use crate::models::{CfBucketInfo, Jurisdiction, LocationHint, StorageClass};
 use serde::Deserialize;
 use serde_json::Value;
 use std::time::{Duration, Instant};
@@ -73,11 +73,25 @@ impl CfClient {
 		path: &str,
 		body: Option<Value>,
 	) -> AppResult<Value> {
+		self.request_full(token, method, path, body, &[]).await
+	}
+
+	async fn request_full(
+		&self,
+		token: &str,
+		method: reqwest::Method,
+		path: &str,
+		body: Option<Value>,
+		extra_headers: &[(&str, &str)],
+	) -> AppResult<Value> {
 		let mut req = self
 			.http
 			.request(method.clone(), format!("{REST_BASE}{path}"))
 			.bearer_auth(token)
 			.header("Content-Type", "application/json");
+		for (name, value) in extra_headers {
+			req = req.header(*name, *value);
+		}
 		if let Some(b) = body {
 			req = req.json(&b);
 		}
@@ -139,12 +153,21 @@ impl CfClient {
 		self.list_buckets(token, account_id).await.is_ok()
 	}
 
-	pub async fn create_bucket(&self, token: &str, account_id: &str, name: &str) -> AppResult<()> {
-		self.request(
+	pub async fn create_bucket(
+		&self,
+		token: &str,
+		account_id: &str,
+		name: &str,
+		jurisdiction: Jurisdiction,
+		location_hint: Option<LocationHint>,
+		storage_class: Option<StorageClass>,
+	) -> AppResult<()> {
+		self.request_full(
 			token,
 			reqwest::Method::POST,
 			&format!("/accounts/{account_id}/r2/buckets"),
-			Some(serde_json::json!({ "name": name })),
+			Some(create_bucket_body(name, location_hint, storage_class)),
+			jurisdiction_header(jurisdiction).as_slice(),
 		)
 		.await?;
 		self.invalidate_prefix(&format!("buckets:{account_id}"))
@@ -492,6 +515,37 @@ fn parse_operations(data: &Value) -> Vec<(String, u64)> {
 		.collect()
 }
 
+fn create_bucket_body(
+	name: &str,
+	location_hint: Option<LocationHint>,
+	storage_class: Option<StorageClass>,
+) -> Value {
+	let mut map = serde_json::Map::new();
+	map.insert("name".into(), Value::String(name.to_string()));
+	if let Some(hint) = location_hint {
+		map.insert(
+			"locationHint".into(),
+			Value::String(hint.as_str().to_string()),
+		);
+	}
+	if let Some(class) = storage_class {
+		map.insert(
+			"storageClass".into(),
+			Value::String(class.api_value().to_string()),
+		);
+	}
+	Value::Object(map)
+}
+
+fn jurisdiction_header(jurisdiction: Jurisdiction) -> Option<(&'static str, &'static str)> {
+	match jurisdiction {
+		Jurisdiction::Default => None,
+		Jurisdiction::Eu | Jurisdiction::Fedramp => {
+			Some(("cf-r2-jurisdiction", jurisdiction.as_str()))
+		}
+	}
+}
+
 fn parse_buckets(result: Value) -> Vec<CfBucketInfo> {
 	let buckets = result
 		.get("buckets")
@@ -584,5 +638,42 @@ mod tests {
 	fn map_gql_401_is_invalid_credentials() {
 		let err = map_gql_response(401, &serde_json::json!({})).unwrap_err();
 		assert_eq!(err.kind(), "invalidCredentials");
+	}
+
+	#[test]
+	fn create_bucket_body_name_only() {
+		assert_eq!(
+			create_bucket_body("example-bucket", None, None),
+			serde_json::json!({ "name": "example-bucket" })
+		);
+	}
+
+	#[test]
+	fn create_bucket_body_includes_optional_fields() {
+		assert_eq!(
+			create_bucket_body(
+				"example-bucket",
+				Some(LocationHint::Wnam),
+				Some(StorageClass::InfrequentAccess)
+			),
+			serde_json::json!({
+				"name": "example-bucket",
+				"locationHint": "wnam",
+				"storageClass": "InfrequentAccess"
+			})
+		);
+	}
+
+	#[test]
+	fn jurisdiction_header_omits_default() {
+		assert_eq!(jurisdiction_header(Jurisdiction::Default), None);
+	}
+
+	#[test]
+	fn jurisdiction_header_sends_eu() {
+		assert_eq!(
+			jurisdiction_header(Jurisdiction::Eu),
+			Some(("cf-r2-jurisdiction", "eu"))
+		);
 	}
 }
