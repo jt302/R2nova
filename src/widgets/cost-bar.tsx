@@ -27,8 +27,10 @@ export function CostBar() {
 				{t('cost.free')} {data?.free ?? 0}
 			</Badge>
 			{estimated > 0 ? (
-				<span className="tabular-nums text-muted-foreground">
-					{t('cost.estimated', { amount: estimated.toFixed(4) })}
+				<span className="tabular-nums text-muted-foreground" title={t('cost.estimatedHint')}>
+					{estimated >= 0.0001
+						? t('cost.estimated', { amount: estimated.toFixed(4) })
+						: t('cost.estimatedTiny')}
 				</span>
 			) : null}
 			<Button

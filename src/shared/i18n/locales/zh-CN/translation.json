@@ -213,7 +213,9 @@
 		"reset": "清零计数",
 		"quote": "此操作大约消耗 {{count}} 次 Class A 请求。浏览比下载贵 12.5 倍。",
 		"session": "本次会话",
-		"estimated": "约 {{amount}} USD"
+		"estimated": "约 {{amount}} USD",
+		"estimatedTiny": "不足 0.0001 USD",
+		"estimatedHint": "按 Class A $4.50/百万、Class B $0.36/百万线性估算，未扣除每月免费额度"
 	},
 	"preview": {
 		"expires": "有效期",

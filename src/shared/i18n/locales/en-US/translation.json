@@ -213,7 +213,9 @@
 		"reset": "Reset counters",
 		"quote": "This will cost about {{count}} Class A calls. Browsing is 12.5× more expensive than downloads.",
 		"session": "This session",
-		"estimated": "About {{amount}} USD"
+		"estimated": "About {{amount}} USD",
+		"estimatedTiny": "Under 0.0001 USD",
+		"estimatedHint": "Linear estimate at $4.50/million Class A and $0.36/million Class B. Monthly free allowance is not deducted."
 	},
 	"preview": {
 		"expires": "Expires",

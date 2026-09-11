@@ -69,11 +69,10 @@ pub fn classify(op: S3Op) -> OpClass {
 	}
 }
 
-/// Standard 定价：Class A $4.50 / 百万，Class B $0.36 / 百万。按百万次向上取整。
+/// 线性边际估算：Class A $4.50 / 百万，Class B $0.36 / 百万。未扣免费额度。
+/// Cloudflare 实际按月汇总后向上取整到百万，不适用于会话计数。
 pub fn estimate_usd(class_a: u64, class_b: u64) -> f64 {
-	let a_blocks = class_a.div_ceil(1_000_000) as f64;
-	let b_blocks = class_b.div_ceil(1_000_000) as f64;
-	a_blocks * 4.50 + b_blocks * 0.36
+	class_a as f64 * 4.50 / 1_000_000.0 + class_b as f64 * 0.36 / 1_000_000.0
 }
 
 /// 列举一个 prefix 下全部对象需要的 Class A 次数（每页 1000）。
@@ -143,11 +142,11 @@ mod tests {
 	}
 
 	#[test]
-	fn billing_rounds_up_to_million() {
-		assert_eq!(estimate_usd(1, 0), 4.50);
-		assert_eq!(estimate_usd(1_000_000, 0), 4.50);
-		assert_eq!(estimate_usd(1_000_001, 0), 9.00);
-		assert_eq!(estimate_usd(0, 1), 0.36);
+	fn estimate_is_linear() {
+		assert!((estimate_usd(1_000_000, 0) - 4.50).abs() < 1e-12);
+		assert!((estimate_usd(0, 1_000_000) - 0.36).abs() < 1e-12);
+		assert!((estimate_usd(21, 44) - 0.00011034).abs() < 1e-10);
+		assert!(estimate_usd(0, 0).abs() < 1e-12);
 	}
 
 	#[test]
@@ -168,6 +167,6 @@ mod tests {
 		assert_eq!(snap.class_a, 2);
 		assert_eq!(snap.class_b, 1);
 		assert_eq!(snap.free, 1);
-		assert_eq!(snap.estimated_usd, 4.86);
+		assert!((snap.estimated_usd - 9.36e-6).abs() < 1e-12);
 	}
 }
