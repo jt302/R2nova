@@ -69,7 +69,7 @@ IPC 参数名与 `#[serde(rename_all = "camelCase")]` 对齐。类型镜像在 [
 | Secret 只进系统钥匙串 | 日志 / toast / 崩溃报告含 token |
 | capabilities 最小权限，无 `fs` | `dragDropEnabled: false`（会丢掉绝对路径） |
 | Markdown 预览禁用 `rehype-raw` | 把 R2 对象当可信 HTML |
-| CSP 含 `ipc: http://ipc.localhost`；asset 仅 `$APPCACHE/**` | 把 `asset` scope 扩到整盘 |
+| CSP 含 `ipc: http://ipc.localhost`；asset 仅 `$APPCACHE/**` 与 `$APPDATA/avatars/**`（仅存 Rust 重新编码后的头像 PNG） | 把 `asset` scope 扩到整盘 |
 
 macOS 钥匙串 ACL 与代码签名绑定：未签名 dev build 与已签名 release 会被当成不同应用。
 

@@ -1,5 +1,6 @@
 #![allow(clippy::too_many_arguments)]
 
+mod avatar;
 mod cf;
 mod commands;
 mod cost;
@@ -37,6 +38,9 @@ pub fn run() {
 		.setup(|app| {
 			let path = commands::profiles_path(app.handle()).map_err(|e| e.to_string())?;
 			let store = creds::ProfileStore::load(&path).unwrap_or_default();
+			if let Ok(dir) = commands::avatars_dir(app.handle()) {
+				avatar::gc(&dir, &avatar::referenced_paths(&store.list()));
+			}
 			let transfer_dir = path
 				.parent()
 				.unwrap_or_else(|| std::path::Path::new("."))
@@ -51,6 +55,8 @@ pub fn run() {
 			reveal_item,
 			list_profiles,
 			upsert_profile,
+			set_profile_avatar,
+			import_avatar_image,
 			delete_profile,
 			probe_profile,
 			get_profile,

@@ -15,7 +15,6 @@ import {
 	AlertDialogHeader,
 	AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import {
 	DropdownMenu,
@@ -43,11 +42,11 @@ import {
 } from '@/components/ui/item';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Spinner } from '@/components/ui/spinner';
-import type { Profile } from '@/entities/profile/types';
+import type { Profile, ProfileAvatar } from '@/entities/profile/types';
+import { AvatarPicker } from '@/features/profile/avatar-picker';
 import { api } from '@/shared/api/backend';
 import { isAppError } from '@/shared/api/tauri-invoke';
 import { queryKeys } from '@/shared/config/query-keys';
-import { profileInitials } from '@/shared/lib/object-key';
 import { useNavStore } from '@/store/nav';
 import { CapabilityBadge } from '@/widgets/capability-badge';
 import { PageHeader } from '@/widgets/page-header';
@@ -91,6 +90,15 @@ export function AccountsPage({
 		onSuccess: (profile) => {
 			void qc.invalidateQueries({ queryKey: queryKeys.profiles });
 			toastProbeResult(t, profile);
+		},
+		onError: (err) => toast.error(isAppError(err) ? err.message : String(err)),
+	});
+
+	const setAvatar = useMutation({
+		mutationFn: ({ id, avatar }: { id: string; avatar: ProfileAvatar | null }) =>
+			api.setProfileAvatar(id, avatar),
+		onSuccess: () => {
+			void qc.invalidateQueries({ queryKey: queryKeys.profiles });
 		},
 		onError: (err) => toast.error(isAppError(err) ? err.message : String(err)),
 	});
@@ -148,9 +156,11 @@ export function AccountsPage({
 					<ItemGroup className="gap-3">
 						{profiles.map((p) => (
 							<Item key={p.id} variant="outline">
-								<Avatar className="size-10">
-									<AvatarFallback>{profileInitials(p.name)}</AvatarFallback>
-								</Avatar>
+								<AvatarPicker
+									profile={p}
+									disabled={setAvatar.isPending && setAvatar.variables?.id === p.id}
+									onChange={(avatar) => setAvatar.mutate({ id: p.id, avatar })}
+								/>
 								<ItemContent>
 									<ItemTitle className="min-w-0 max-w-full">
 										<span className="truncate" title={p.name}>

@@ -15,7 +15,7 @@ The WebView is untrusted relative to R2 credentials. All signing, HTTPS, and fil
 
 - Commands return `{ kind, message }`. Do not leak raw SDK traces that embed credentials.
 - Markdown preview: no `rehype-raw`. Object bodies are attacker-controlled.
-- CSP allows `ipc:` / `http://ipc.localhost` and `asset:` only for `$APPCACHE/**`. Presigned media preview may load `https://*.r2.cloudflarestorage.com` (and EU / FedRAMP hosts) in img/media/frame.
+- CSP allows `ipc:` / `http://ipc.localhost` and `asset:` only for `$APPCACHE/**` and `$APPDATA/avatars/**` (Rust-reencoded avatar PNGs). Presigned media preview may load `https://*.r2.cloudflarestorage.com` (and EU / FedRAMP hosts) in img/media/frame.
 
 ## Updates
 

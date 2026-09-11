@@ -1,7 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { Check, ChevronsUpDown, Plus, Users } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import {
 	DropdownMenu,
@@ -15,9 +14,9 @@ import {
 import { cn } from '@/lib/utils';
 import { api } from '@/shared/api/backend';
 import { queryKeys } from '@/shared/config/query-keys';
-import { profileInitials } from '@/shared/lib/object-key';
 import { useNavStore } from '@/store/nav';
 import { CapabilityBadge } from '@/widgets/capability-badge';
+import { ProfileAvatar } from '@/widgets/profile-avatar';
 
 export function ProfileSwitcher({
 	compact = false,
@@ -47,11 +46,7 @@ export function ProfileSwitcher({
 					className={cn(!compact && 'h-9 w-full justify-between px-2')}
 					aria-label={t('profile.switch')}
 				>
-					<Avatar className="size-6">
-						<AvatarFallback className="text-[10px]">
-							{current ? profileInitials(current.name) : 'R'}
-						</AvatarFallback>
-					</Avatar>
+					<ProfileAvatar profile={current} className="size-6" fallbackClassName="text-[10px]" />
 					{compact ? null : (
 						<>
 							<span className="min-w-0 flex-1 truncate text-left">
@@ -78,9 +73,7 @@ export function ProfileSwitcher({
 									setMainView('objects');
 								}}
 							>
-								<Avatar className="size-6">
-									<AvatarFallback className="text-[10px]">{profileInitials(p.name)}</AvatarFallback>
-								</Avatar>
+								<ProfileAvatar profile={p} className="size-6" fallbackClassName="text-[10px]" />
 								<span className="min-w-0 flex-1 truncate">{p.name}</span>
 								<CapabilityBadge capability={p.capability} />
 								{p.id === profileId ? <Check /> : null}

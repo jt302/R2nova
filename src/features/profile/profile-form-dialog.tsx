@@ -23,8 +23,9 @@ import {
 	SelectValue,
 } from '@/components/ui/select';
 import { Spinner } from '@/components/ui/spinner';
-import type { Jurisdiction, Profile } from '@/entities/profile/types';
+import type { Jurisdiction, Profile, ProfileAvatar } from '@/entities/profile/types';
 import { toastProbeResult } from '@/features/profile/accounts-page';
+import { AvatarPicker } from '@/features/profile/avatar-picker';
 import { api } from '@/shared/api/backend';
 import { isAppError } from '@/shared/api/tauri-invoke';
 import { queryKeys } from '@/shared/config/query-keys';
@@ -43,6 +44,7 @@ type Form = {
 	cfApiToken: string;
 	analyticsToken: string;
 	billingDay: string;
+	avatar: ProfileAvatar | null;
 };
 
 function emptyForm(): Form {
@@ -55,6 +57,7 @@ function emptyForm(): Form {
 		cfApiToken: '',
 		analyticsToken: '',
 		billingDay: '1',
+		avatar: null,
 	};
 }
 
@@ -68,6 +71,7 @@ function fromProfile(profile: Profile): Form {
 		cfApiToken: '',
 		analyticsToken: '',
 		billingDay: String(profile.billingDay || 1),
+		avatar: profile.avatar ?? null,
 	};
 }
 
@@ -109,6 +113,7 @@ export function ProfileFormDialog({
 				cfApiToken: form.cfApiToken.trim() || undefined,
 				analyticsToken: form.analyticsToken.trim() || undefined,
 				billingDay: billingDayNum,
+				avatar: form.avatar,
 			}),
 		onSuccess: (p) => {
 			void qc.invalidateQueries({ queryKey: queryKeys.profiles });
@@ -136,6 +141,13 @@ export function ProfileFormDialog({
 					<DialogDescription>{t('profile.emptyBody')}</DialogDescription>
 				</DialogHeader>
 				<FieldGroup className="min-h-0 gap-4 overflow-y-auto px-6">
+					<Field>
+						<FieldLabel>{t('profile.avatar')}</FieldLabel>
+						<AvatarPicker
+							profile={{ name: form.name, avatar: form.avatar }}
+							onChange={(avatar) => setForm({ ...form, avatar })}
+						/>
+					</Field>
 					<Field>
 						<FieldLabel htmlFor="profile-name">{t('profile.name')}</FieldLabel>
 						<Input

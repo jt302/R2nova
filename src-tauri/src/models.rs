@@ -1,3 +1,4 @@
+use crate::error::{AppError, AppResult};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -53,6 +54,27 @@ pub struct Profile {
 	/// Last probe failure. Cleared on a successful ListBuckets. Never store secrets here.
 	#[serde(default)]
 	pub last_error: Option<String>,
+	#[serde(default)]
+	pub avatar: Option<ProfileAvatar>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(tag = "kind", rename_all = "camelCase")]
+pub enum ProfileAvatar {
+	Emoji { value: String },
+	Image { path: String },
+}
+
+pub fn normalize_avatar_emoji(value: &str) -> AppResult<String> {
+	let trimmed = value.trim();
+	if trimmed.is_empty()
+		|| trimmed.chars().count() > 8
+		|| trimmed.len() > 32
+		|| trimmed.chars().any(char::is_control)
+	{
+		return Err(AppError::Other("invalid avatar emoji".into()));
+	}
+	Ok(trimmed.to_string())
 }
 
 fn default_billing_day() -> u8 {
@@ -197,7 +219,49 @@ mod tests {
 		}"#;
 		let p: Profile = serde_json::from_str(json).unwrap();
 		assert_eq!(p.last_error, None);
+		assert_eq!(p.avatar, None);
 		assert!(!p.has_analytics_token);
 		assert_eq!(p.billing_day, 1);
+	}
+
+	#[test]
+	fn profile_avatar_emoji_roundtrip() {
+		let json = r#"{"kind":"emoji","value":"🚀"}"#;
+		let avatar: ProfileAvatar = serde_json::from_str(json).unwrap();
+		assert_eq!(
+			avatar,
+			ProfileAvatar::Emoji {
+				value: "🚀".into()
+			}
+		);
+		let encoded = serde_json::to_value(&avatar).unwrap();
+		assert_eq!(encoded["kind"], "emoji");
+		assert_eq!(encoded["value"], "🚀");
+	}
+
+	#[test]
+	fn profile_avatar_image_roundtrip() {
+		let avatar = ProfileAvatar::Image {
+			path: "/tmp/avatars/a.png".into(),
+		};
+		let encoded = serde_json::to_value(&avatar).unwrap();
+		assert_eq!(encoded["kind"], "image");
+		assert_eq!(encoded["path"], "/tmp/avatars/a.png");
+		let decoded: ProfileAvatar = serde_json::from_value(encoded).unwrap();
+		assert_eq!(decoded, avatar);
+	}
+
+	#[test]
+	fn normalize_avatar_emoji_accepts_trimmed_preset() {
+		assert_eq!(normalize_avatar_emoji(" 🚀 ").unwrap(), "🚀");
+	}
+
+	#[test]
+	fn normalize_avatar_emoji_rejects_empty_long_and_control() {
+		assert!(normalize_avatar_emoji("").is_err());
+		assert!(normalize_avatar_emoji("   ").is_err());
+		assert!(normalize_avatar_emoji("abcdefghij").is_err());
+		assert!(normalize_avatar_emoji("ok\u{0007}").is_err());
+		assert!(normalize_avatar_emoji(&"a".repeat(33)).is_err());
 	}
 }

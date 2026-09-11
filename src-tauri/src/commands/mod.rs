@@ -27,6 +27,14 @@ pub fn profiles_path(app: &AppHandle) -> AppResult<PathBuf> {
 	Ok(dir.join("profiles.json"))
 }
 
+pub fn avatars_dir(app: &AppHandle) -> AppResult<PathBuf> {
+	let profiles = profiles_path(app)?;
+	let parent = profiles
+		.parent()
+		.ok_or_else(|| AppError::Io("profiles path has no parent".into()))?;
+	Ok(parent.join("avatars"))
+}
+
 pub async fn load_profile(state: &State<'_, AppState>, profile_id: &str) -> AppResult<Profile> {
 	state.profiles.lock().await.get(profile_id)
 }

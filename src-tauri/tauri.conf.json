@@ -36,7 +36,7 @@
 			},
 			"assetProtocol": {
 				"enable": true,
-				"scope": ["$APPCACHE/**"]
+				"scope": ["$APPCACHE/**", "$APPDATA/avatars/**", "$APPDATA/development/avatars/**"]
 			}
 		}
 	},

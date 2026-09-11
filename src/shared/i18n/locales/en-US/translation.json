@@ -96,7 +96,12 @@
 		"invalidHint": "Could not list buckets. Check the Account ID, Access Key, and jurisdiction, then save again.",
 		"useAccount": "Use this account",
 		"switch": "Switch account",
-		"noAccount": "No account selected"
+		"noAccount": "No account selected",
+		"avatar": "Avatar",
+		"avatarPick": "Choose avatar",
+		"avatarUseInitials": "Use name initials",
+		"avatarUpload": "Upload image…",
+		"avatarImageFilter": "Images"
 	},
 	"onboarding": {
 		"browse": "Browse and organize",

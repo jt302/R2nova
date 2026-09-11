@@ -35,6 +35,7 @@ aws-sdk-s3 = "1"
 aws-credential-types = "1"
 log = "0.4"
 keyring-core = "1"
+image = { version = "0.25", default-features = false, features = ["png", "jpeg", "webp", "gif", "bmp"] }
 tauri-plugin-process = "2"
 
 [target.'cfg(target_os = "macos")'.dependencies]

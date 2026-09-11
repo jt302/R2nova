@@ -8,6 +8,7 @@ import type {
 	OpsUsage,
 	PresignResult,
 	Profile,
+	ProfileAvatar,
 	TransferProgress,
 } from '@/entities/profile/types';
 import { tauriInvoke } from '@/shared/api/tauri-invoke';
@@ -24,7 +25,12 @@ export const api = {
 		cfApiToken?: string;
 		analyticsToken?: string;
 		billingDay?: number;
+		avatar?: ProfileAvatar | null;
 	}) => tauriInvoke<Profile>('upsert_profile', args),
+	setProfileAvatar: (id: string, avatar: ProfileAvatar | null) =>
+		tauriInvoke<Profile>('set_profile_avatar', { id, avatar }),
+	importAvatarImage: (sourcePath: string) =>
+		tauriInvoke<string>('import_avatar_image', { sourcePath }),
 	deleteProfile: (id: string) => tauriInvoke<void>('delete_profile', { id }),
 	probeProfile: (id: string) => tauriInvoke<Profile>('probe_profile', { id }),
 	getProfile: (id: string) => tauriInvoke<Profile>('get_profile', { id }),

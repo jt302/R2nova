@@ -1,6 +1,8 @@
 export type Jurisdiction = 'default' | 'eu' | 'fedramp';
 export type TokenCapability = 'unknown' | 'invalid' | 'object' | 'admin';
 
+export type ProfileAvatar = { kind: 'emoji'; value: string } | { kind: 'image'; path: string };
+
 export type Profile = {
 	id: string;
 	name: string;
@@ -12,6 +14,7 @@ export type Profile = {
 	billingDay: number;
 	capability: TokenCapability;
 	lastError?: string | null;
+	avatar?: ProfileAvatar | null;
 };
 
 export type BucketItem = {

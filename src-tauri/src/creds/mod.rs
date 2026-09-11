@@ -205,19 +205,21 @@ pub fn build_profile(
 		billing_day,
 		capability: TokenCapability::Unknown,
 		last_error: None,
+		avatar: None,
 	}
 }
 
 #[cfg(test)]
 mod tests {
 	use super::*;
+	use crate::models::ProfileAvatar;
 
 	#[test]
 	fn store_roundtrip() {
 		let dir = tempfile::tempdir().unwrap();
 		let path = dir.path().join("profiles.json");
 		let mut store = ProfileStore::default();
-		store.upsert(build_profile(
+		let mut profile = build_profile(
 			"p1".into(),
 			"prod".into(),
 			"acct".into(),
@@ -226,11 +228,21 @@ mod tests {
 			false,
 			false,
 			1,
-		));
+		);
+		profile.avatar = Some(ProfileAvatar::Emoji {
+			value: "🚀".into()
+		});
+		store.upsert(profile);
 		store.save(&path).unwrap();
 		let loaded = ProfileStore::load(&path).unwrap();
 		assert_eq!(loaded.list().len(), 1);
 		assert_eq!(loaded.get("p1").unwrap().name, "prod");
+		assert_eq!(
+			loaded.get("p1").unwrap().avatar,
+			Some(ProfileAvatar::Emoji {
+				value: "🚀".into()
+			})
+		);
 	}
 
 	#[test]
@@ -273,7 +285,8 @@ mod tests {
 	#[test]
 	fn analytics_token_writes_and_keeps_on_empty_update() {
 		init_mock_keyring().unwrap();
-		let flags = apply_profile_secrets(None, "p-an", "s3-secret", None, Some("an-token")).unwrap();
+		let flags =
+			apply_profile_secrets(None, "p-an", "s3-secret", None, Some("an-token")).unwrap();
 		assert!(!flags.has_cf_token);
 		assert!(flags.has_analytics_token);
 		assert_eq!(get_secret("analytics", "p-an").unwrap(), "an-token");

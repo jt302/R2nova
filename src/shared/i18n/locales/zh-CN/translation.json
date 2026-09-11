@@ -96,7 +96,12 @@
 		"invalidHint": "无法列出存储桶。请检查 Account ID、Access Key 和管辖区，然后重新保存。",
 		"useAccount": "使用此账号",
 		"switch": "切换账号",
-		"noAccount": "未选择账号"
+		"noAccount": "未选择账号",
+		"avatar": "头像",
+		"avatarPick": "选择头像",
+		"avatarUseInitials": "使用名称首字母",
+		"avatarUpload": "上传图片…",
+		"avatarImageFilter": "图片"
 	},
 	"onboarding": {
 		"browse": "浏览与整理",
