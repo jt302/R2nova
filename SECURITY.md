@@ -6,7 +6,7 @@ The WebView is untrusted relative to R2 credentials. All signing, HTTPS, and fil
 
 ## Credentials
 
-- Access Key secret and Cloudflare API token are stored only in the OS keychain (`io.r2nova.app`): macOS Keychain, Windows Credential Manager, Linux Secret Service (GNOME Keyring / KWallet).
+- Access Key secret, Cloudflare API token, and Analytics token are stored only in the OS keychain (`io.r2nova.app`): macOS Keychain, Windows Credential Manager, Linux Secret Service (GNOME Keyring / KWallet).
 - Missing Secret Service is a hard failure (`kind: keyring`), never a mock store. AppImage talks to the host session bus.
 - Profile metadata (no secrets) is `profiles.json` under the app data dir.
 - Logs, toasts, and crash reports must not contain tokens, secrets, or presigned query strings.

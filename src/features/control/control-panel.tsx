@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { writeText } from '@tauri-apps/plugin-clipboard-manager';
+import { openUrl } from '@tauri-apps/plugin-opener';
 import { Copy, HardDrive, Shield } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -122,7 +123,7 @@ function AdvancedJson({
 	);
 }
 
-export function ControlPanel() {
+export function ControlPanel({ onEditProfile }: { onEditProfile?: () => void }) {
 	const { t } = useTranslation();
 	const qc = useQueryClient();
 	const profileId = useNavStore((s) => s.profileId);
@@ -170,6 +171,11 @@ export function ControlPanel() {
 	const metrics = useQuery({
 		queryKey: queryKeys.cf.metrics(profileId ?? ''),
 		queryFn: () => api.cfMetrics(profileId ?? ''),
+		enabled: Boolean(admin && profileId),
+	});
+	const ops = useQuery({
+		queryKey: queryKeys.cf.operations(profileId ?? ''),
+		queryFn: () => api.cfOperationsUsage(profileId ?? ''),
 		enabled: Boolean(admin && profileId),
 	});
 	const events = useQuery({
@@ -366,6 +372,61 @@ export function ControlPanel() {
 										) : null}
 									</dl>
 								)}
+								{ops.isLoading ? (
+									<p className="text-sm text-muted-foreground">{t('common.loading')}</p>
+								) : ops.isError ? (
+									isAppError(ops.error) && ops.error.kind === 'accessDenied' ? (
+										<div className="flex flex-col gap-2">
+											<p className="text-sm text-muted-foreground">
+												{t('control.opsNeedAnalytics')}
+											</p>
+											<div className="flex flex-wrap gap-2">
+												{onEditProfile ? (
+													<Button size="sm" variant="outline" onClick={onEditProfile}>
+														{t('profile.edit')}
+													</Button>
+												) : null}
+												<Button
+													size="sm"
+													variant="outline"
+													onClick={() =>
+														void openUrl('https://dash.cloudflare.com/profile/api-tokens')
+													}
+												>
+													{t('profile.createToken')}
+												</Button>
+											</div>
+										</div>
+									) : (
+										<p className="text-sm text-muted-foreground">{errorMessage(ops.error)}</p>
+									)
+								) : ops.data ? (
+									<div className="flex flex-col gap-2">
+										<p className="text-xs text-muted-foreground">
+											{t('control.opsRange', {
+												from: ops.data.from.slice(0, 10),
+												to: ops.data.to.slice(0, 10),
+											})}
+										</p>
+										<dl className="grid grid-cols-2 gap-3">
+											<MetricTile
+												label={t('cost.classA')}
+												value={ops.data.classA.toLocaleString()}
+											/>
+											<MetricTile
+												label={t('cost.classB')}
+												value={ops.data.classB.toLocaleString()}
+											/>
+											<MetricTile label={t('cost.free')} value={ops.data.free.toLocaleString()} />
+											{ops.data.other > 0 ? (
+												<MetricTile
+													label={t('control.opsOther')}
+													value={ops.data.other.toLocaleString()}
+												/>
+											) : null}
+										</dl>
+									</div>
+								) : null}
 							</CardContent>
 						</Card>
 

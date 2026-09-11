@@ -66,6 +66,8 @@ Object 级 Token 打 `api.cloudflare.com` 是彻底不可用，不是缺某一�
 
 Cloudflare REST：全账号 **1200 次 / 5 分钟**。只做低频管理，且 GET 必须缓存。
 
+请求量走 GraphQL Analytics（`r2OperationsAdaptiveGroups`），Token 需 `Account Analytics: Read`。R2 面板创建的 Admin Token 不含此权限。应用用独立 Analytics Token（钥匙串 `analytics:{profile}`），缺失时回退 CF Token。计费周期起始日由账号设置（默认 1 日）；自动读取需 `Billing: Read`，未做。
+
 ## Checksum
 
 2025-02 起 R2 已兼容 flexible checksums，**不要默认关掉** SDK checksum。实测失败再降为 `WHEN_REQUIRED`。

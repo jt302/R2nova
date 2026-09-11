@@ -5,6 +5,7 @@ import type {
 	ListObjectsPage,
 	MultipartUploadItem,
 	ObjectDetail,
+	OpsUsage,
 	PresignResult,
 	Profile,
 	TransferProgress,
@@ -21,6 +22,8 @@ export const api = {
 		secretAccessKey: string;
 		jurisdiction: Profile['jurisdiction'];
 		cfApiToken?: string;
+		analyticsToken?: string;
+		billingDay?: number;
 	}) => tauriInvoke<Profile>('upsert_profile', args),
 	deleteProfile: (id: string) => tauriInvoke<void>('delete_profile', { id }),
 	probeProfile: (id: string) => tauriInvoke<Profile>('probe_profile', { id }),
@@ -142,6 +145,8 @@ export const api = {
 	cfPutLock: (profileId: string, bucket: string, body: unknown) =>
 		tauriInvoke<void>('cf_put_lock', { profileId, bucket, body }),
 	cfMetrics: (profileId: string) => tauriInvoke<unknown>('cf_metrics', { profileId }),
+	cfOperationsUsage: (profileId: string) =>
+		tauriInvoke<OpsUsage>('cf_operations_usage', { profileId }),
 	cfGetEvents: (profileId: string, bucket: string) =>
 		tauriInvoke<unknown>('cf_get_events', { profileId, bucket }),
 	cfPutEvents: (profileId: string, bucket: string, body: unknown) =>

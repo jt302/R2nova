@@ -45,10 +45,18 @@ pub struct Profile {
 	pub access_key_id: String,
 	pub jurisdiction: Jurisdiction,
 	pub has_cf_token: bool,
+	#[serde(default)]
+	pub has_analytics_token: bool,
+	#[serde(default = "default_billing_day")]
+	pub billing_day: u8,
 	pub capability: TokenCapability,
 	/// Last probe failure. Cleared on a successful ListBuckets. Never store secrets here.
 	#[serde(default)]
 	pub last_error: Option<String>,
+}
+
+fn default_billing_day() -> u8 {
+	1
 }
 
 /// Cloudflare Account ID is exactly 32 ASCII hex digits (dashboard, not an email).
@@ -189,5 +197,7 @@ mod tests {
 		}"#;
 		let p: Profile = serde_json::from_str(json).unwrap();
 		assert_eq!(p.last_error, None);
+		assert!(!p.has_analytics_token);
+		assert_eq!(p.billing_day, 1);
 	}
 }

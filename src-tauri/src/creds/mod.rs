@@ -133,13 +133,30 @@ pub fn init_mock_keyring() -> AppResult<()> {
 	Ok(())
 }
 
-/// Apply S3 / CF secrets for create or update. Empty secret on update keeps the keychain entry.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct SecretFlags {
+	pub has_cf_token: bool,
+	pub has_analytics_token: bool,
+}
+
+fn apply_optional_token(kind: &str, id: &str, token: Option<&str>, keep: bool) -> AppResult<bool> {
+	match token {
+		Some(token) if !token.is_empty() => {
+			set_secret(kind, id, token)?;
+			Ok(true)
+		}
+		_ => Ok(keep),
+	}
+}
+
+/// Apply S3 / CF / Analytics secrets for create or update. Empty secret on update keeps the keychain entry.
 pub fn apply_profile_secrets(
 	existing: Option<&Profile>,
 	id: &str,
 	secret_access_key: &str,
 	cf_api_token: Option<&str>,
-) -> AppResult<bool> {
+	analytics_token: Option<&str>,
+) -> AppResult<SecretFlags> {
 	let updating = existing.is_some();
 	if secret_access_key.is_empty() {
 		if !updating {
@@ -151,14 +168,20 @@ pub fn apply_profile_secrets(
 		set_secret("s3", id, secret_access_key)?;
 	}
 
-	match cf_api_token {
-		Some(token) if !token.is_empty() => {
-			set_secret("cf", id, token)?;
-			Ok(true)
-		}
-		_ if updating => Ok(existing.is_some_and(|p| p.has_cf_token)),
-		_ => Ok(false),
-	}
+	Ok(SecretFlags {
+		has_cf_token: apply_optional_token(
+			"cf",
+			id,
+			cf_api_token,
+			existing.is_some_and(|p| p.has_cf_token),
+		)?,
+		has_analytics_token: apply_optional_token(
+			"analytics",
+			id,
+			analytics_token,
+			existing.is_some_and(|p| p.has_analytics_token),
+		)?,
+	})
 }
 
 pub fn build_profile(
@@ -168,6 +191,8 @@ pub fn build_profile(
 	access_key_id: String,
 	jurisdiction: Jurisdiction,
 	has_cf_token: bool,
+	has_analytics_token: bool,
+	billing_day: u8,
 ) -> Profile {
 	Profile {
 		id,
@@ -176,6 +201,8 @@ pub fn build_profile(
 		access_key_id,
 		jurisdiction,
 		has_cf_token,
+		has_analytics_token,
+		billing_day,
 		capability: TokenCapability::Unknown,
 		last_error: None,
 	}
@@ -197,6 +224,8 @@ mod tests {
 			"AKIA".into(),
 			Jurisdiction::Default,
 			false,
+			false,
+			1,
 		));
 		store.save(&path).unwrap();
 		let loaded = ProfileStore::load(&path).unwrap();
@@ -222,11 +251,14 @@ mod tests {
 			"AKIA".into(),
 			Jurisdiction::Default,
 			true,
+			false,
+			1,
 		);
 		set_secret("s3", "p-keep", "old-secret").unwrap();
 		set_secret("cf", "p-keep", "old-token").unwrap();
-		let has_cf = apply_profile_secrets(Some(&existing), "p-keep", "", None).unwrap();
-		assert!(has_cf);
+		let flags = apply_profile_secrets(Some(&existing), "p-keep", "", None, None).unwrap();
+		assert!(flags.has_cf_token);
+		assert!(!flags.has_analytics_token);
 		assert_eq!(get_secret("s3", "p-keep").unwrap(), "old-secret");
 		assert_eq!(get_secret("cf", "p-keep").unwrap(), "old-token");
 	}
@@ -234,7 +266,30 @@ mod tests {
 	#[test]
 	fn create_without_secret_fails() {
 		init_mock_keyring().unwrap();
-		let err = apply_profile_secrets(None, "p-new", "", None).unwrap_err();
+		let err = apply_profile_secrets(None, "p-new", "", None, None).unwrap_err();
 		assert_eq!(err.kind(), "invalidCredentials");
+	}
+
+	#[test]
+	fn analytics_token_writes_and_keeps_on_empty_update() {
+		init_mock_keyring().unwrap();
+		let flags = apply_profile_secrets(None, "p-an", "s3-secret", None, Some("an-token")).unwrap();
+		assert!(!flags.has_cf_token);
+		assert!(flags.has_analytics_token);
+		assert_eq!(get_secret("analytics", "p-an").unwrap(), "an-token");
+
+		let existing = build_profile(
+			"p-an".into(),
+			"prod".into(),
+			"acct".into(),
+			"AKIA".into(),
+			Jurisdiction::Default,
+			false,
+			true,
+			1,
+		);
+		let flags = apply_profile_secrets(Some(&existing), "p-an", "", None, None).unwrap();
+		assert!(flags.has_analytics_token);
+		assert_eq!(get_secret("analytics", "p-an").unwrap(), "an-token");
 	}
 }

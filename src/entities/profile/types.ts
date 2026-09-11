@@ -8,6 +8,8 @@ export type Profile = {
 	accessKeyId: string;
 	jurisdiction: Jurisdiction;
 	hasCfToken: boolean;
+	hasAnalyticsToken: boolean;
+	billingDay: number;
 	capability: TokenCapability;
 	lastError?: string | null;
 };
@@ -49,6 +51,15 @@ export type CostSnapshot = {
 	classB: number;
 	free: number;
 	estimatedUsd: number;
+};
+
+export type OpsUsage = {
+	from: string;
+	to: string;
+	classA: number;
+	classB: number;
+	free: number;
+	other: number;
 };
 
 export type CostQuote = {

@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { openUrl } from '@tauri-apps/plugin-opener';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
@@ -40,6 +41,8 @@ type Form = {
 	secretAccessKey: string;
 	jurisdiction: Jurisdiction;
 	cfApiToken: string;
+	analyticsToken: string;
+	billingDay: string;
 };
 
 function emptyForm(): Form {
@@ -50,6 +53,8 @@ function emptyForm(): Form {
 		secretAccessKey: '',
 		jurisdiction: 'default',
 		cfApiToken: '',
+		analyticsToken: '',
+		billingDay: '1',
 	};
 }
 
@@ -61,6 +66,8 @@ function fromProfile(profile: Profile): Form {
 		secretAccessKey: '',
 		jurisdiction: profile.jurisdiction,
 		cfApiToken: '',
+		analyticsToken: '',
+		billingDay: String(profile.billingDay || 1),
 	};
 }
 
@@ -79,6 +86,9 @@ export function ProfileFormDialog({
 	const editing = Boolean(profile);
 	const [form, setForm] = useState<Form>(emptyForm);
 	const accountInvalid = Boolean(form.accountId.trim() && !isAccountId(form.accountId));
+	const billingDayNum = Number(form.billingDay);
+	const billingDayInvalid =
+		!Number.isInteger(billingDayNum) || billingDayNum < 1 || billingDayNum > 31;
 
 	useEffect(() => {
 		if (!open) {
@@ -97,10 +107,13 @@ export function ProfileFormDialog({
 				secretAccessKey: form.secretAccessKey.trim(),
 				jurisdiction: form.jurisdiction,
 				cfApiToken: form.cfApiToken.trim() || undefined,
+				analyticsToken: form.analyticsToken.trim() || undefined,
+				billingDay: billingDayNum,
 			}),
 		onSuccess: (p) => {
 			void qc.invalidateQueries({ queryKey: queryKeys.profiles });
 			void qc.invalidateQueries({ queryKey: queryKeys.buckets(p.id) });
+			void qc.invalidateQueries({ queryKey: queryKeys.cfAll });
 			setProfileId(p.id);
 			toastProbeResult(t, p, 'save');
 			onOpenChange(false);
@@ -112,7 +125,8 @@ export function ProfileFormDialog({
 		form.name.trim() &&
 		isAccountId(form.accountId) &&
 		form.accessKeyId.trim() &&
-		(editing || form.secretAccessKey.trim());
+		(editing || form.secretAccessKey.trim()) &&
+		!billingDayInvalid;
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
@@ -168,6 +182,41 @@ export function ProfileFormDialog({
 							onChange={(e) => setForm({ ...form, cfApiToken: e.target.value })}
 							placeholder={editing ? t('profile.tokenUnchanged') : undefined}
 						/>
+					</Field>
+					<Field>
+						<FieldLabel htmlFor="profile-analytics">{t('profile.analyticsToken')}</FieldLabel>
+						<Input
+							id="profile-analytics"
+							type="password"
+							value={form.analyticsToken}
+							onChange={(e) => setForm({ ...form, analyticsToken: e.target.value })}
+							placeholder={
+								editing && profile?.hasAnalyticsToken ? t('profile.tokenUnchanged') : undefined
+							}
+						/>
+						<FieldDescription>{t('profile.analyticsTokenHint')}</FieldDescription>
+						<Button
+							type="button"
+							variant="link"
+							className="h-auto self-start p-0"
+							onClick={() => void openUrl('https://dash.cloudflare.com/profile/api-tokens')}
+						>
+							{t('profile.createToken')}
+						</Button>
+					</Field>
+					<Field data-invalid={billingDayInvalid || undefined}>
+						<FieldLabel htmlFor="profile-billing-day">{t('profile.billingDay')}</FieldLabel>
+						<Input
+							id="profile-billing-day"
+							type="number"
+							min={1}
+							max={31}
+							value={form.billingDay}
+							aria-invalid={billingDayInvalid}
+							onChange={(e) => setForm({ ...form, billingDay: e.target.value })}
+						/>
+						<FieldDescription>{t('profile.billingDayHint')}</FieldDescription>
+						{billingDayInvalid ? <FieldError>{t('profile.billingDayInvalid')}</FieldError> : null}
 					</Field>
 					<Field>
 						<FieldLabel>{t('profile.jurisdiction')}</FieldLabel>

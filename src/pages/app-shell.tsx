@@ -373,7 +373,9 @@ export function AppShell() {
 								>
 									<ResizablePanel id="browser" minSize="30" className="min-w-0 overflow-hidden">
 										{mainView === 'settings' ? (
-											<ControlPanel />
+											<ControlPanel
+												onEditProfile={currentProfile ? () => openEdit(currentProfile) : undefined}
+											/>
 										) : currentProfile?.capability === 'invalid' ? (
 											<InvalidAccountState
 												lastError={currentProfile.lastError}

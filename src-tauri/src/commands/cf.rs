@@ -1,8 +1,10 @@
 use crate::commands::{load_profile, require_admin};
+use crate::cost::{summarize_actions, OpsUsage};
 use crate::creds::get_secret;
 use crate::error::AppResult;
 use crate::models::CfBucketInfo;
 use crate::state::AppState;
+use chrono::{SecondsFormat, Utc};
 use serde_json::Value;
 use tauri::State;
 
@@ -209,6 +211,33 @@ pub async fn cf_metrics(state: State<'_, AppState>, profile_id: String) -> AppRe
 		.cf
 		.metrics(&token(&profile_id).await?, &profile.account_id)
 		.await
+}
+
+#[tauri::command]
+pub async fn cf_operations_usage(
+	state: State<'_, AppState>,
+	profile_id: String,
+) -> AppResult<OpsUsage> {
+	let profile = load_profile(&state, &profile_id).await?;
+	require_admin(&profile).await?;
+	let now = Utc::now();
+	let (from, to) = crate::cost::billing_period(now, profile.billing_day);
+	let from_s = from.to_rfc3339_opts(SecondsFormat::Secs, true);
+	let to_s = to.to_rfc3339_opts(SecondsFormat::Secs, true);
+	let now_s = now.to_rfc3339_opts(SecondsFormat::Secs, true);
+	let ops_token = if profile.has_analytics_token {
+		get_secret("analytics", &profile_id)?
+	} else {
+		token(&profile_id).await?
+	};
+	let actions = state
+		.cf
+		.r2_operations(&ops_token, &profile.account_id, &from_s, &now_s)
+		.await?;
+	let mut usage = summarize_actions(actions.into_iter());
+	usage.from = from_s;
+	usage.to = to_s;
+	Ok(usage)
 }
 
 #[tauri::command]

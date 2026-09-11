@@ -92,6 +92,7 @@ pub fn run() {
 			cf_get_lock,
 			cf_put_lock,
 			cf_metrics,
+			cf_operations_usage,
 			cf_get_events,
 			cf_put_events,
 			cost_snapshot,

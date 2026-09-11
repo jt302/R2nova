@@ -15,6 +15,7 @@ export const queryKeys = {
 	installKind: ['install-kind'] as const,
 	transfers: ['transfers'] as const,
 	multipart: (profileId: string, bucket: string) => ['multipart', profileId, bucket] as const,
+	cfAll: ['cf'] as const,
 	cf: {
 		cors: (profileId: string, bucket: string) => ['cf', 'cors', profileId, bucket] as const,
 		lifecycle: (profileId: string, bucket: string) =>
@@ -23,6 +24,7 @@ export const queryKeys = {
 		domains: (profileId: string, bucket: string) => ['cf', 'domains', profileId, bucket] as const,
 		lock: (profileId: string, bucket: string) => ['cf', 'lock', profileId, bucket] as const,
 		metrics: (profileId: string) => ['cf', 'metrics', profileId] as const,
+		operations: (profileId: string) => ['cf', 'operations', profileId] as const,
 		events: (profileId: string, bucket: string) => ['cf', 'events', profileId, bucket] as const,
 	},
 };

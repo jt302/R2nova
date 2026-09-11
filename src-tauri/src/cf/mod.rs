@@ -7,6 +7,22 @@ use tokio::sync::Mutex;
 
 const REST_BASE: &str = "https://api.cloudflare.com/client/v4";
 
+const OPS_QUERY: &str = r#"
+query R2Volume($accountTag: string!, $startDate: Time, $endDate: Time) {
+	viewer {
+		accounts(filter: { accountTag: $accountTag }) {
+			r2OperationsAdaptiveGroups(
+				limit: 10000
+				filter: { datetime_geq: $startDate, datetime_leq: $endDate }
+			) {
+				sum { requests }
+				dimensions { actionType }
+			}
+		}
+	}
+}
+"#;
+
 pub struct CfClient {
 	http: reqwest::Client,
 	cache: Mutex<Vec<CacheEntry>>,
@@ -350,6 +366,47 @@ impl CfClient {
 		self.put_cache(cache_key, result.clone()).await;
 		Ok(result)
 	}
+
+	pub async fn r2_operations(
+		&self,
+		token: &str,
+		account_id: &str,
+		from: &str,
+		to: &str,
+	) -> AppResult<Vec<(String, u64)>> {
+		let cache_key = format!("ops:{account_id}:{from}");
+		if let Some(v) = self.cached(&cache_key).await {
+			return Ok(parse_operations(&v));
+		}
+		let body = serde_json::json!({
+			"query": OPS_QUERY,
+			"variables": {
+				"accountTag": account_id,
+				"startDate": from,
+				"endDate": to,
+			}
+		});
+		let resp = self
+			.http
+			.request(reqwest::Method::POST, format!("{REST_BASE}/graphql"))
+			.bearer_auth(token)
+			.header("Content-Type", "application/json")
+			.json(&body)
+			.send()
+			.await?;
+		let status = resp.status();
+		let json: Value = match resp.json().await {
+			Ok(v) => v,
+			Err(_) => {
+				return Err(AppError::Other(format!(
+					"Cloudflare GraphQL returned a non-JSON response (HTTP {status})"
+				)));
+			}
+		};
+		let data = map_gql_response(status.as_u16(), &json)?;
+		self.put_cache(cache_key, data.clone()).await;
+		Ok(parse_operations(&data))
+	}
 }
 
 #[derive(Deserialize)]
@@ -367,6 +424,72 @@ struct CfError {
 	code: i64,
 	#[serde(default)]
 	message: String,
+}
+
+fn gql_errors(body: &Value) -> &[Value] {
+	body.get("errors").and_then(Value::as_array).map_or(&[], Vec::as_slice)
+}
+
+fn gql_error_messages(body: &Value) -> String {
+	gql_errors(body)
+		.iter()
+		.filter_map(|e| e.get("message").and_then(Value::as_str))
+		.collect::<Vec<_>>()
+		.join("; ")
+}
+
+fn gql_has_authz(body: &Value) -> bool {
+	gql_errors(body).iter().any(|e| {
+		e.pointer("/extensions/code")
+			.and_then(Value::as_str)
+			.is_some_and(|code| code == "authz")
+	})
+}
+
+fn map_gql_response(status: u16, body: &Value) -> AppResult<Value> {
+	if status == 401 {
+		return Err(AppError::InvalidCredentials(
+			"Cloudflare GraphQL rejected this token.".into(),
+		));
+	}
+	if status == 429 {
+		return Err(AppError::RateLimited(
+			"Cloudflare GraphQL rate limited this request.".into(),
+		));
+	}
+	if status == 403 || gql_has_authz(body) {
+		return Err(AppError::AccessDenied(
+			"Cloudflare GraphQL rejected this token. Account Analytics: Read is required for request usage.".into(),
+		));
+	}
+	let data = body.get("data").cloned().unwrap_or(Value::Null);
+	if !gql_errors(body).is_empty() && data.is_null() {
+		return Err(AppError::Other(gql_error_messages(body)));
+	}
+	if !(200..300).contains(&status) {
+		return Err(AppError::Other(status.to_string()));
+	}
+	Ok(data)
+}
+
+fn parse_operations(data: &Value) -> Vec<(String, u64)> {
+	let groups = data
+		.pointer("/viewer/accounts/0/r2OperationsAdaptiveGroups")
+		.or_else(|| data.pointer("/data/viewer/accounts/0/r2OperationsAdaptiveGroups"))
+		.and_then(|v| v.as_array())
+		.cloned()
+		.unwrap_or_default();
+	groups
+		.iter()
+		.filter_map(|item| {
+			let action = item.pointer("/dimensions/actionType")?.as_str()?.to_string();
+			let requests = item
+				.pointer("/sum/requests")
+				.and_then(|v| v.as_u64().or_else(|| v.as_f64().map(|n| n as u64)))
+				.unwrap_or(0);
+			Some((action, requests))
+		})
+		.collect()
 }
 
 fn parse_buckets(result: Value) -> Vec<CfBucketInfo> {
@@ -408,5 +531,58 @@ mod tests {
 		let items = parse_buckets(v);
 		assert_eq!(items.len(), 2);
 		assert_eq!(items[0].name, "a");
+	}
+
+	#[test]
+	fn parse_operations_from_graphql_data() {
+		let v = serde_json::json!({
+			"viewer": {
+				"accounts": [{
+					"r2OperationsAdaptiveGroups": [
+						{ "dimensions": { "actionType": "ListObjects" }, "sum": { "requests": 12 } },
+						{ "dimensions": { "actionType": "GetObject" }, "sum": { "requests": 7.0 } }
+					]
+				}]
+			}
+		});
+		let items = parse_operations(&v);
+		assert_eq!(items, vec![("ListObjects".into(), 12), ("GetObject".into(), 7)]);
+	}
+
+	#[test]
+	fn map_gql_treats_null_errors_as_success() {
+		let body = serde_json::json!({
+			"data": { "viewer": { "accounts": [] } },
+			"errors": null
+		});
+		let data = map_gql_response(200, &body).unwrap();
+		assert!(data.get("viewer").is_some());
+	}
+
+	#[test]
+	fn map_gql_authz_is_access_denied() {
+		let body = serde_json::json!({
+			"data": null,
+			"errors": [{ "message": "not authorized", "extensions": { "code": "authz" } }]
+		});
+		let err = map_gql_response(200, &body).unwrap_err();
+		assert_eq!(err.kind(), "accessDenied");
+	}
+
+	#[test]
+	fn map_gql_error_messages_are_other() {
+		let body = serde_json::json!({
+			"data": null,
+			"errors": [{ "message": "cannot request data older than 2678400s" }]
+		});
+		let err = map_gql_response(200, &body).unwrap_err();
+		assert_eq!(err.kind(), "other");
+		assert!(err.to_string().contains("cannot request data older than 2678400s"));
+	}
+
+	#[test]
+	fn map_gql_401_is_invalid_credentials() {
+		let err = map_gql_response(401, &serde_json::json!({})).unwrap_err();
+		assert_eq!(err.kind(), "invalidCredentials");
 	}
 }
