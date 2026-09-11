@@ -7,6 +7,8 @@ export const queryKeys = {
 		['object', profileId, bucket, key] as const,
 	previewFile: (profileId: string, bucket: string, key: string) =>
 		['preview-file', profileId, bucket, key] as const,
+	previewText: (profileId: string, bucket: string, key: string) =>
+		['preview-text', profileId, bucket, key] as const,
 	previewSign: (profileId: string, bucket: string, key: string) =>
 		['preview-sign', profileId, bucket, key] as const,
 	cost: ['cost'] as const,

@@ -90,11 +90,16 @@ function MarkdownCodeBlock({
 	useEffect(() => {
 		let cancelled = false;
 		setHtml('');
-		void highlightCode(text, lang).then((next) => {
-			if (!cancelled) {
-				setHtml(next);
-			}
-		});
+		highlightCode(text, lang).then(
+			(next) => {
+				if (!cancelled) {
+					setHtml(next);
+				}
+			},
+			() => {
+				// 高亮失败就保留下方未高亮的 <pre>；正文已经可读，不值得再报错。
+			},
+		);
 		return () => {
 			cancelled = true;
 		};
@@ -157,8 +162,6 @@ export function PreviewPane({ target, onClose }: { target: PreviewTarget; onClos
 	const remoteMedia = isRemoteMedia(kind, objectKey);
 	const localImage = kind === 'image' && !remoteMedia;
 	const textLike = isTextKind(kind);
-	const [html, setHtml] = useState('');
-	const [text, setText] = useState('');
 	const [expires, setExpires] = useState('3600');
 	const [failedKey, setFailedKey] = useState<string | null>(null);
 	const imgFailed = failedKey === objectKey;
@@ -185,32 +188,35 @@ export function PreviewPane({ target, onClose }: { target: PreviewTarget; onClos
 	const localSrc = file.data ? convertFileSrc(file.data) : '';
 	const src =
 		kind === 'image' && (localImage || imgFailed) ? localSrc : remoteMedia ? remoteSrc : localSrc;
+
+	// 文本先 fetch(asset://) 读缓存文件，再交给 shiki；这两步都受 CSP 管（connect-src /
+	// script-src 'wasm-unsafe-eval'），放进 query 让失败走下方错误分支并可重试，而不是留白。
+	const content = useQuery({
+		queryKey: queryKeys.previewText(profileId, bucket, objectKey),
+		enabled: textLike && Boolean(localSrc),
+		queryFn: async () => {
+			const res = await fetch(localSrc);
+			if (!res.ok) {
+				throw new Error(`asset protocol returned ${res.status}`);
+			}
+			const body = await res.text();
+			if (kind === 'markdown') {
+				return { text: body, html: '' };
+			}
+			return { text: '', html: await highlightCode(body, extOf(objectKey)) };
+		},
+	});
+
 	const loading =
 		detail.isLoading ||
 		(remoteMedia && !imgFailed && signed.isLoading) ||
-		(useLocalFile && file.isLoading);
+		(useLocalFile && file.isLoading) ||
+		(textLike && content.isLoading);
 	const error =
 		detail.error ??
 		(remoteMedia && !imgFailed ? signed.error : null) ??
-		(useLocalFile ? file.error : null);
-
-	useEffect(() => {
-		setHtml('');
-		setText('');
-		if (!file.data || !textLike) {
-			return;
-		}
-		const local = convertFileSrc(file.data);
-		void (async () => {
-			const res = await fetch(local);
-			const body = await res.text();
-			if (kind === 'markdown') {
-				setText(body);
-				return;
-			}
-			setHtml(await highlightCode(body, extOf(objectKey)));
-		})();
-	}, [file.data, kind, objectKey, textLike]);
+		(useLocalFile ? file.error : null) ??
+		(textLike ? content.error : null);
 
 	function errorCopy(err: unknown): { title: string; body: string } {
 		if (isAppError(err) && err.kind === 'notFound') {
@@ -221,7 +227,7 @@ export function PreviewPane({ target, onClose }: { target: PreviewTarget; onClos
 		}
 		return {
 			title: t('preview.failed'),
-			body: isAppError(err) ? err.message : String(err),
+			body: isAppError(err) || err instanceof Error ? err.message : String(err),
 		};
 	}
 
@@ -270,7 +276,7 @@ export function PreviewPane({ target, onClose }: { target: PreviewTarget; onClos
 								onClick={() => {
 									void detail.refetch();
 									void signed.refetch();
-									void file.refetch();
+									void file.refetch().then(() => (textLike ? content.refetch() : undefined));
 								}}
 							>
 								{t('preview.retry')}
@@ -301,12 +307,14 @@ export function PreviewPane({ target, onClose }: { target: PreviewTarget; onClos
 								remarkPlugins={[remarkGfm]}
 								components={{ a: MarkdownLink, pre: MarkdownCodeBlock }}
 							>
-								{text}
+								{content.data?.text ?? ''}
 							</Markdown>
 						</div>
 					</div>
 				) : null}
-				{!loading && !error && kind === 'text' ? <HighlightedCode html={html} /> : null}
+				{!loading && !error && kind === 'text' ? (
+					<HighlightedCode html={content.data?.html ?? ''} />
+				) : null}
 				{!loading && !error && kind === 'other' ? (
 					<Empty className="h-full border-0">
 						<EmptyHeader>
