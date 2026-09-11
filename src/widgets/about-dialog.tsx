@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { openUrl } from '@tauri-apps/plugin-opener';
 import { relaunch } from '@tauri-apps/plugin-process';
 import { check } from '@tauri-apps/plugin-updater';
-import { useState } from 'react';
+import { type ReactNode, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import {
@@ -20,15 +20,15 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { api } from '@/shared/api/backend';
 import { queryKeys } from '@/shared/config/query-keys';
 
-const REPO_URL = 'https://github.com/jt302/R2nova';
-const REPO_LABEL = 'github.com/jt302/R2nova';
+export const REPO_URL = 'https://github.com/jt302/R2nova';
+export const REPO_LABEL = 'github.com/jt302/R2nova';
 
-async function checkAvailableUpdate(): Promise<string | null> {
+export async function checkAvailableUpdate(): Promise<string | null> {
 	const update = await check();
 	return update?.version ?? null;
 }
 
-export function AboutDialog() {
+export function AboutDialog({ trigger }: { trigger?: ReactNode }) {
 	const { t } = useTranslation();
 	const [open, setOpen] = useState(false);
 	const [error, setError] = useState(false);
@@ -131,27 +131,31 @@ export function AboutDialog() {
 				}
 			}}
 		>
-			<Tooltip>
-				<TooltipTrigger asChild>
-					<DialogTrigger asChild>
-						<Button
-							variant="ghost"
-							size="sm"
-							className="relative h-8 px-2 text-xs tabular-nums text-muted-foreground"
-							aria-label={tooltip}
-						>
-							v{version}
-							{hasUpdate ? (
-								<span
-									className="absolute top-1.5 right-1 size-1.5 rounded-full bg-primary"
-									aria-hidden
-								/>
-							) : null}
-						</Button>
-					</DialogTrigger>
-				</TooltipTrigger>
-				<TooltipContent>{tooltip}</TooltipContent>
-			</Tooltip>
+			{trigger ? (
+				<DialogTrigger asChild>{trigger}</DialogTrigger>
+			) : (
+				<Tooltip>
+					<TooltipTrigger asChild>
+						<DialogTrigger asChild>
+							<Button
+								variant="ghost"
+								size="sm"
+								className="relative h-8 px-2 text-xs tabular-nums text-muted-foreground"
+								aria-label={tooltip}
+							>
+								v{version}
+								{hasUpdate ? (
+									<span
+										className="absolute top-1.5 right-1 size-1.5 rounded-full bg-primary"
+										aria-hidden
+									/>
+								) : null}
+							</Button>
+						</DialogTrigger>
+					</TooltipTrigger>
+					<TooltipContent>{tooltip}</TooltipContent>
+				</Tooltip>
+			)}
 			<DialogContent
 				className="sm:max-w-sm"
 				showCloseButton={!installing}

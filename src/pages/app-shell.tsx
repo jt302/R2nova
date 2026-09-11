@@ -44,6 +44,7 @@ import type { Profile } from '@/entities/profile/types';
 import { BrowserPage } from '@/features/browser/browser-page';
 import { CommandPalette } from '@/features/command-palette/command-palette';
 import { ControlPanel } from '@/features/control/control-panel';
+import { PreferencesPage } from '@/features/preferences/preferences-page';
 import { PreviewPane } from '@/features/preview/preview-pane';
 import { AccountsPage, InvalidAccountState } from '@/features/profile/accounts-page';
 import { ProfileFormDialog } from '@/features/profile/profile-form-dialog';
@@ -78,6 +79,14 @@ function useThemeClass(theme: 'light' | 'dark' | 'system') {
 	}, [theme]);
 }
 
+function useWebviewZoom(zoom: number) {
+	useEffect(() => {
+		void import('@tauri-apps/api/webview')
+			.then(({ getCurrentWebview }) => getCurrentWebview().setZoom(zoom))
+			.catch(() => undefined);
+	}, [zoom]);
+}
+
 export function AppShell() {
 	const { t, i18n } = useTranslation();
 	const theme = useNavStore((s) => s.theme);
@@ -99,6 +108,10 @@ export function AppShell() {
 	const forward = useNavStore((s) => s.forward);
 	const setPreview = useNavStore((s) => s.setPreview);
 	const transferConcurrency = useNavStore((s) => s.transferConcurrency);
+	const zoom = useNavStore((s) => s.zoom);
+	const zoomIn = useNavStore((s) => s.zoomIn);
+	const zoomOut = useNavStore((s) => s.zoomOut);
+	const resetZoom = useNavStore((s) => s.resetZoom);
 	const activeTab = useActiveTab();
 	const [commandOpen, setCommandOpen] = useState(false);
 	const [formOpen, setFormOpen] = useState(false);
@@ -111,6 +124,7 @@ export function AppShell() {
 	const currentProfile = profiles.find((p) => p.id === profileId);
 
 	useThemeClass(theme);
+	useWebviewZoom(zoom);
 
 	useEffect(() => {
 		document.documentElement.lang = language;
@@ -165,10 +179,26 @@ export function AppShell() {
 				e.preventDefault();
 				setMainView('transfers');
 			}
+			if (e.key === ',') {
+				e.preventDefault();
+				setMainView('preferences');
+			}
+			if (e.key === '=' || e.key === '+') {
+				e.preventDefault();
+				zoomIn();
+			}
+			if (e.key === '-' || e.key === '_') {
+				e.preventDefault();
+				zoomOut();
+			}
+			if (e.key === '0') {
+				e.preventDefault();
+				resetZoom();
+			}
 		};
 		window.addEventListener('keydown', onKey);
 		return () => window.removeEventListener('keydown', onKey);
-	}, [activeTabId, back, closeTab, forward, newTab, setMainView]);
+	}, [activeTabId, back, closeTab, forward, newTab, resetZoom, setMainView, zoomIn, zoomOut]);
 
 	const themeLabel =
 		theme === 'dark'
@@ -188,7 +218,11 @@ export function AppShell() {
 		setFormOpen(true);
 	}
 
-	const showSidebar = Boolean(profileId) && mainView !== 'accounts' && mainView !== 'transfers';
+	const showSidebar =
+		Boolean(profileId) &&
+		mainView !== 'accounts' &&
+		mainView !== 'transfers' &&
+		mainView !== 'preferences';
 	const preview = activeTab.preview;
 	const showPreview = Boolean(preview) && mainView === 'objects';
 
@@ -287,6 +321,8 @@ export function AppShell() {
 						<AccountsPage onAdd={openAdd} onEdit={openEdit} />
 					) : mainView === 'transfers' ? (
 						<TransferPage />
+					) : mainView === 'preferences' ? (
+						<PreferencesPage />
 					) : !profileId ? (
 						<Onboarding onAdd={openAdd} />
 					) : (

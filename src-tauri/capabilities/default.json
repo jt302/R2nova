@@ -6,6 +6,7 @@
 	"permissions": [
 		"core:default",
 		"core:window:allow-set-theme",
+		"core:webview:allow-set-webview-zoom",
 		"dialog:default",
 		"store:default",
 		"opener:default",

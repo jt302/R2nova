@@ -225,7 +225,7 @@ export function ControlPanel() {
 					<EmptyMedia variant="icon">
 						<Shield />
 					</EmptyMedia>
-					<EmptyTitle>{t('nav.settings')}</EmptyTitle>
+					<EmptyTitle>{t('nav.bucketSettings')}</EmptyTitle>
 					<EmptyDescription>{t('profile.needAdmin')}</EmptyDescription>
 				</EmptyHeader>
 			</Empty>
@@ -240,7 +240,10 @@ export function ControlPanel() {
 	return (
 		<div className="h-full min-h-0 w-full overflow-y-auto scrollbar-gutter-stable">
 			<div className="mx-auto flex w-full max-w-3xl flex-col gap-6 p-8">
-				<PageHeader title={t('nav.settings')} description={bucket || t('browser.selectBucket')} />
+				<PageHeader
+					title={t('nav.bucketSettings')}
+					description={bucket || t('browser.selectBucket')}
+				/>
 
 				<Tabs value={section} onValueChange={setSection}>
 					<TabsList variant="line">

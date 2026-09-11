@@ -5,11 +5,14 @@ import {
 	clampPreviewSize,
 	clampSidebarWidth,
 	clampTransferConcurrency,
+	clampZoom,
 	initialLanguage,
 	initialPreviewSize,
 	initialSidebarWidth,
 	parseLanguage,
+	stepZoom,
 	TRANSFER_CONCURRENCY_DEFAULT,
+	ZOOM_DEFAULT,
 } from '@/shared/lib/prefs';
 import {
 	type PreviewTarget,
@@ -18,7 +21,7 @@ import {
 } from '@/shared/lib/preview';
 
 export type Location = { bucket: string; prefix: string };
-export type MainView = 'objects' | 'transfers' | 'settings' | 'accounts';
+export type MainView = 'objects' | 'transfers' | 'settings' | 'accounts' | 'preferences';
 export type { AppLanguage, PreviewTarget };
 
 export type Tab = {
@@ -40,6 +43,7 @@ type NavState = {
 	previewSize: number;
 	downloadDir: string | null;
 	transferConcurrency: number;
+	zoom: number;
 	setProfileId: (id: string | null) => void;
 	setTheme: (theme: NavState['theme']) => void;
 	setLanguage: (language: AppLanguage) => void;
@@ -48,6 +52,10 @@ type NavState = {
 	setPreviewSize: (size: number) => void;
 	setDownloadDir: (dir: string | null) => void;
 	setTransferConcurrency: (n: number) => void;
+	setZoom: (zoom: number) => void;
+	zoomIn: () => void;
+	zoomOut: () => void;
+	resetZoom: () => void;
 	setPreview: (preview: PreviewTarget | null) => void;
 	go: (loc: Location) => void;
 	back: () => void;
@@ -95,6 +103,7 @@ export const useNavStore = create<NavState>()(
 				previewSize: initialPreviewSize(),
 				downloadDir: null,
 				transferConcurrency: TRANSFER_CONCURRENCY_DEFAULT,
+				zoom: ZOOM_DEFAULT,
 				setProfileId: (id) =>
 					set((s) => ({
 						profileId: id,
@@ -110,6 +119,10 @@ export const useNavStore = create<NavState>()(
 				setPreviewSize: (size) => set({ previewSize: clampPreviewSize(size) }),
 				setDownloadDir: (downloadDir) => set({ downloadDir }),
 				setTransferConcurrency: (n) => set({ transferConcurrency: clampTransferConcurrency(n) }),
+				setZoom: (zoom) => set({ zoom: clampZoom(zoom) }),
+				zoomIn: () => set((s) => ({ zoom: stepZoom(s.zoom, 1) })),
+				zoomOut: () => set((s) => ({ zoom: stepZoom(s.zoom, -1) })),
+				resetZoom: () => set({ zoom: ZOOM_DEFAULT }),
 				setPreview: (preview) =>
 					set((s) => ({
 						tabs: s.tabs.map((t) => (t.id === s.activeTabId ? { ...t, preview } : t)),
@@ -202,6 +215,9 @@ export const useNavStore = create<NavState>()(
 							? incoming.transferConcurrency
 							: (current.transferConcurrency ?? TRANSFER_CONCURRENCY_DEFAULT),
 					),
+					zoom: clampZoom(
+						typeof incoming.zoom === 'number' ? incoming.zoom : (current.zoom ?? ZOOM_DEFAULT),
+					),
 					tabs,
 					activeTabId: incoming.activeTabId ?? current.activeTabId,
 				};
@@ -217,6 +233,7 @@ export const useNavStore = create<NavState>()(
 				previewSize: s.previewSize,
 				downloadDir: s.downloadDir,
 				transferConcurrency: s.transferConcurrency,
+				zoom: s.zoom,
 			}),
 		},
 	),

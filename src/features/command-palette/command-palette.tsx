@@ -8,9 +8,13 @@ import {
 	Monitor,
 	Moon,
 	Plus,
+	RotateCcw,
+	Settings,
 	SlidersHorizontal,
 	Sun,
 	Users,
+	ZoomIn,
+	ZoomOut,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -40,6 +44,9 @@ export function CommandPalette({
 	const setLanguage = useNavStore((s) => s.setLanguage);
 	const setMainView = useNavStore((s) => s.setMainView);
 	const setDownloadDir = useNavStore((s) => s.setDownloadDir);
+	const zoomIn = useNavStore((s) => s.zoomIn);
+	const zoomOut = useNavStore((s) => s.zoomOut);
+	const resetZoom = useNavStore((s) => s.resetZoom);
 	const { data: buckets = [] } = useQuery({
 		queryKey: queryKeys.buckets(profileId ?? ''),
 		queryFn: () => api.listBuckets(profileId ?? ''),
@@ -72,7 +79,7 @@ export function CommandPalette({
 						</CommandItem>
 					))}
 				</CommandGroup>
-				<CommandGroup heading={t('nav.settings')}>
+				<CommandGroup heading={t('command.group')}>
 					<CommandItem
 						value="objects"
 						onSelect={() => {
@@ -92,6 +99,16 @@ export function CommandPalette({
 					>
 						<SlidersHorizontal />
 						{t('command.settings')}
+					</CommandItem>
+					<CommandItem
+						value="preferences"
+						onSelect={() => {
+							setMainView('preferences');
+							onOpenChange(false);
+						}}
+					>
+						<Settings />
+						{t('command.preferences')}
 					</CommandItem>
 					<CommandItem
 						value="accounts"
@@ -187,6 +204,36 @@ export function CommandPalette({
 					>
 						<Languages />
 						{t('command.languageEn')}
+					</CommandItem>
+					<CommandItem
+						value="zoom-in"
+						onSelect={() => {
+							zoomIn();
+							onOpenChange(false);
+						}}
+					>
+						<ZoomIn />
+						{t('command.zoomIn')}
+					</CommandItem>
+					<CommandItem
+						value="zoom-out"
+						onSelect={() => {
+							zoomOut();
+							onOpenChange(false);
+						}}
+					>
+						<ZoomOut />
+						{t('command.zoomOut')}
+					</CommandItem>
+					<CommandItem
+						value="zoom-reset"
+						onSelect={() => {
+							resetZoom();
+							onOpenChange(false);
+						}}
+					>
+						<RotateCcw />
+						{t('command.zoomReset')}
 					</CommandItem>
 				</CommandGroup>
 			</CommandList>

@@ -1,4 +1,4 @@
-import { ArrowUpDown, FolderOpen, SlidersHorizontal, Users } from 'lucide-react';
+import { ArrowUpDown, FolderOpen, Settings, SlidersHorizontal, Users } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -8,16 +8,73 @@ import { ProfileSwitcher } from '@/widgets/profile-switcher';
 
 type RailItem = {
 	view: MainView;
-	labelKey: 'nav.objects' | 'nav.transfers' | 'nav.settings' | 'nav.accounts';
+	labelKey:
+		| 'nav.objects'
+		| 'nav.transfers'
+		| 'nav.bucketSettings'
+		| 'nav.accounts'
+		| 'nav.preferences';
 	icon: typeof FolderOpen;
 };
 
-const ITEMS: RailItem[] = [
+const TOP_ITEMS: RailItem[] = [
 	{ view: 'objects', labelKey: 'nav.objects', icon: FolderOpen },
 	{ view: 'transfers', labelKey: 'nav.transfers', icon: ArrowUpDown },
-	{ view: 'settings', labelKey: 'nav.settings', icon: SlidersHorizontal },
+	{ view: 'settings', labelKey: 'nav.bucketSettings', icon: SlidersHorizontal },
 	{ view: 'accounts', labelKey: 'nav.accounts', icon: Users },
 ];
+
+const BOTTOM_ITEMS: RailItem[] = [
+	{ view: 'preferences', labelKey: 'nav.preferences', icon: Settings },
+];
+
+function RailButtons({
+	items,
+	mainView,
+	transferCount,
+	onSelect,
+}: {
+	items: RailItem[];
+	mainView: MainView;
+	transferCount: number;
+	onSelect: (view: MainView) => void;
+}) {
+	const { t } = useTranslation();
+	return items.map((item) => {
+		const Icon = item.icon;
+		const active = mainView === item.view;
+		const label =
+			item.view === 'transfers' && transferCount > 0
+				? t('transfer.active', { count: transferCount })
+				: t(item.labelKey);
+		return (
+			<Tooltip key={item.view}>
+				<TooltipTrigger asChild>
+					<Button
+						variant="ghost"
+						size="icon-sm"
+						aria-label={label}
+						aria-current={active ? 'page' : undefined}
+						className={cn(
+							'relative',
+							active && 'bg-sidebar-accent text-foreground hover:bg-sidebar-accent',
+						)}
+						onClick={() => onSelect(item.view)}
+					>
+						<Icon />
+						{active ? (
+							<span className="absolute inset-y-1.5 left-0 w-0.5 rounded-full bg-primary" />
+						) : null}
+						{item.view === 'transfers' && transferCount > 0 ? (
+							<span className="absolute top-0.5 right-0.5 size-1.5 rounded-full bg-primary" />
+						) : null}
+					</Button>
+				</TooltipTrigger>
+				<TooltipContent side="right">{label}</TooltipContent>
+			</Tooltip>
+		);
+	});
+}
 
 export function ActivityRail({
 	transferCount,
@@ -26,7 +83,6 @@ export function ActivityRail({
 	transferCount: number;
 	onAdd: () => void;
 }) {
-	const { t } = useTranslation();
 	const mainView = useNavStore((s) => s.mainView);
 	const setMainView = useNavStore((s) => s.setMainView);
 
@@ -35,41 +91,19 @@ export function ActivityRail({
 			<div className="mb-1 flex size-8 items-center justify-center rounded-lg bg-primary text-xs font-semibold text-primary-foreground">
 				R2
 			</div>
-			{ITEMS.map((item) => {
-				const Icon = item.icon;
-				const active = mainView === item.view;
-				const label =
-					item.view === 'transfers' && transferCount > 0
-						? t('transfer.active', { count: transferCount })
-						: t(item.labelKey);
-				return (
-					<Tooltip key={item.view}>
-						<TooltipTrigger asChild>
-							<Button
-								variant="ghost"
-								size="icon-sm"
-								aria-label={label}
-								aria-current={active ? 'page' : undefined}
-								className={cn(
-									'relative',
-									active && 'bg-sidebar-accent text-foreground hover:bg-sidebar-accent',
-								)}
-								onClick={() => setMainView(item.view)}
-							>
-								<Icon />
-								{active ? (
-									<span className="absolute inset-y-1.5 left-0 w-0.5 rounded-full bg-primary" />
-								) : null}
-								{item.view === 'transfers' && transferCount > 0 ? (
-									<span className="absolute top-0.5 right-0.5 size-1.5 rounded-full bg-primary" />
-								) : null}
-							</Button>
-						</TooltipTrigger>
-						<TooltipContent side="right">{label}</TooltipContent>
-					</Tooltip>
-				);
-			})}
+			<RailButtons
+				items={TOP_ITEMS}
+				mainView={mainView}
+				transferCount={transferCount}
+				onSelect={setMainView}
+			/>
 			<div className="flex-1" />
+			<RailButtons
+				items={BOTTOM_ITEMS}
+				mainView={mainView}
+				transferCount={transferCount}
+				onSelect={setMainView}
+			/>
 			<ProfileSwitcher compact onAdd={onAdd} onManage={() => setMainView('accounts')} />
 		</aside>
 	);

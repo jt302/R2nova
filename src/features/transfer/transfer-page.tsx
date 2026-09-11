@@ -1,5 +1,4 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { open } from '@tauri-apps/plugin-dialog';
 import {
 	ArrowDownToLine,
 	ArrowUpDown,
@@ -19,7 +18,6 @@ import {
 	EmptyMedia,
 	EmptyTitle,
 } from '@/components/ui/empty';
-import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
 import { Spinner } from '@/components/ui/spinner';
 import { cn } from '@/lib/utils';
@@ -42,7 +40,6 @@ import {
 	mergeQueue,
 	type QueueItem,
 } from '@/shared/lib/transfer-queue';
-import { useNavStore } from '@/store/nav';
 import { useTransferStore } from '@/store/transfer';
 import { PageHeader } from '@/widgets/page-header';
 
@@ -55,10 +52,6 @@ export function TransferPage() {
 	const live = useTransferStore((s) => s.items);
 	const dismissed = useTransferStore((s) => s.dismissed);
 	const dismiss = useTransferStore((s) => s.dismiss);
-	const downloadDir = useNavStore((s) => s.downloadDir);
-	const setDownloadDir = useNavStore((s) => s.setDownloadDir);
-	const transferConcurrency = useNavStore((s) => s.transferConcurrency);
-	const setTransferConcurrency = useNavStore((s) => s.setTransferConcurrency);
 	const qc = useQueryClient();
 	const { data = [], isLoading } = useQuery({
 		queryKey: queryKeys.transfers,
@@ -90,14 +83,6 @@ export function TransferPage() {
 			});
 	}
 
-	async function pickDownloadDir() {
-		const picked = await open({ directory: true, multiple: false });
-		const dir = Array.isArray(picked) ? picked[0] : picked;
-		if (typeof dir === 'string' && dir) {
-			setDownloadDir(dir);
-		}
-	}
-
 	return (
 		<div className="flex h-full min-h-0 w-full flex-1 flex-col">
 			<div className="shrink-0 border-b px-6 py-4">
@@ -105,49 +90,21 @@ export function TransferPage() {
 					title={t('transfer.queue')}
 					description={summary}
 					actions={
-						<div className="flex max-w-xl flex-wrap items-center justify-end gap-2">
-							<label className="flex items-center gap-2 text-xs text-muted-foreground">
-								{t('transfer.concurrency')}
-								<Input
-									type="number"
-									min={1}
-									max={16}
-									className="h-8 w-14 px-2 text-center"
-									value={transferConcurrency}
-									onChange={(e) => setTransferConcurrency(Number(e.target.value))}
-								/>
-							</label>
-							{downloadDir ? (
-								<span
-									className="max-w-52 truncate text-xs text-muted-foreground select-text"
-									title={downloadDir}
-								>
-									{downloadDir}
-								</span>
-							) : (
-								<span className="text-xs text-muted-foreground">
-									{t('transfer.downloadDirUnset')}
-								</span>
-							)}
-							<Button variant="outline" size="sm" onClick={() => void pickDownloadDir()}>
-								{downloadDir ? t('transfer.downloadDirSet') : t('transfer.downloadDir')}
-							</Button>
-							{endedCount > 0 ? (
-								<Button
-									variant="outline"
-									size="sm"
-									onClick={() => {
-										for (const item of items) {
-											if (isEndedStatus(item.status)) {
-												persistDismiss(item.id);
-											}
+						endedCount > 0 ? (
+							<Button
+								variant="outline"
+								size="sm"
+								onClick={() => {
+									for (const item of items) {
+										if (isEndedStatus(item.status)) {
+											persistDismiss(item.id);
 										}
-									}}
-								>
-									{t('transfer.clearFinished')}
-								</Button>
-							) : null}
-						</div>
+									}
+								}}
+							>
+								{t('transfer.clearFinished')}
+							</Button>
+						) : undefined
 					}
 				/>
 			</div>

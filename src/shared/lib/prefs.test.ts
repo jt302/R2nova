@@ -3,6 +3,7 @@ import {
 	clampPreviewSize,
 	clampSidebarWidth,
 	clampTransferConcurrency,
+	clampZoom,
 	detectLanguage,
 	PREVIEW_DEFAULT_PCT,
 	PREVIEW_MAX_PCT,
@@ -11,9 +12,11 @@ import {
 	SIDEBAR_DEFAULT_PX,
 	SIDEBAR_MAX_PX,
 	SIDEBAR_MIN_PX,
+	stepZoom,
 	TRANSFER_CONCURRENCY_DEFAULT,
 	TRANSFER_CONCURRENCY_MAX,
 	TRANSFER_CONCURRENCY_MIN,
+	ZOOM_DEFAULT,
 } from '@/shared/lib/prefs';
 
 describe('prefs', () => {
@@ -36,6 +39,22 @@ describe('prefs', () => {
 		expect(clampTransferConcurrency(0)).toBe(TRANSFER_CONCURRENCY_MIN);
 		expect(clampTransferConcurrency(99)).toBe(TRANSFER_CONCURRENCY_MAX);
 		expect(clampTransferConcurrency(Number.NaN)).toBe(TRANSFER_CONCURRENCY_DEFAULT);
+	});
+
+	it('snaps zoom to the nearest step and stays within 75–150%', () => {
+		expect(clampZoom(1)).toBe(1);
+		expect(clampZoom(1.07)).toBe(1.1);
+		expect(clampZoom(0.5)).toBe(0.75);
+		expect(clampZoom(3)).toBe(1.5);
+		expect(clampZoom(Number.NaN)).toBe(ZOOM_DEFAULT);
+	});
+
+	it('steps zoom to the next preset and stops at the ends', () => {
+		expect(stepZoom(1, 1)).toBe(1.1);
+		expect(stepZoom(1.1, -1)).toBe(1);
+		expect(stepZoom(0.75, -1)).toBe(0.75);
+		expect(stepZoom(1.5, 1)).toBe(1.5);
+		expect(stepZoom(1.07, 1)).toBe(1.25);
 	});
 
 	it('prefers stored language over the browser locale', () => {
