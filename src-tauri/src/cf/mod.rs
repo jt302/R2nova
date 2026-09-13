@@ -450,7 +450,9 @@ struct CfError {
 }
 
 fn gql_errors(body: &Value) -> &[Value] {
-	body.get("errors").and_then(Value::as_array).map_or(&[], Vec::as_slice)
+	body.get("errors")
+		.and_then(Value::as_array)
+		.map_or(&[], Vec::as_slice)
 }
 
 fn gql_error_messages(body: &Value) -> String {
@@ -505,7 +507,10 @@ fn parse_operations(data: &Value) -> Vec<(String, u64)> {
 	groups
 		.iter()
 		.filter_map(|item| {
-			let action = item.pointer("/dimensions/actionType")?.as_str()?.to_string();
+			let action = item
+				.pointer("/dimensions/actionType")?
+				.as_str()?
+				.to_string();
 			let requests = item
 				.pointer("/sum/requests")
 				.and_then(|v| v.as_u64().or_else(|| v.as_f64().map(|n| n as u64)))
@@ -600,7 +605,10 @@ mod tests {
 			}
 		});
 		let items = parse_operations(&v);
-		assert_eq!(items, vec![("ListObjects".into(), 12), ("GetObject".into(), 7)]);
+		assert_eq!(
+			items,
+			vec![("ListObjects".into(), 12), ("GetObject".into(), 7)]
+		);
 	}
 
 	#[test]
@@ -631,7 +639,9 @@ mod tests {
 		});
 		let err = map_gql_response(200, &body).unwrap_err();
 		assert_eq!(err.kind(), "other");
-		assert!(err.to_string().contains("cannot request data older than 2678400s"));
+		assert!(err
+			.to_string()
+			.contains("cannot request data older than 2678400s"));
 	}
 
 	#[test]

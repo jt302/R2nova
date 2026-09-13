@@ -71,7 +71,6 @@ jobs:
         run: pnpm -s build
 
       - name: Backend cargo fmt
-        if: runner.os == 'macOS'
         run: cargo fmt --manifest-path src-tauri/Cargo.toml --check
 
       - name: Backend cargo clippy

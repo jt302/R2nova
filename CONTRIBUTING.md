@@ -9,15 +9,31 @@ pnpm install
 pnpm tauri dev
 ```
 
+`pnpm install` sets `core.hooksPath` to `.githooks/`.
+
+- **pre-commit**: Biome on staged files, `cargo fmt --check`, Clippy when Rust files change, `release:check` when version files change.
+- **pre-push**: `pnpm typecheck`, `pnpm test`, `cargo test`.
+
+VS Code / Cursor: recommended extensions and format-on-save live in `.vscode/`.
+
 ## Checks
+
+CI-equivalent local suite (no installers):
+
+```bash
+pnpm check:all
+```
+
+Individual commands:
 
 ```bash
 pnpm check          # Biome
 pnpm test
 pnpm typecheck
 pnpm release:check  # version numbers stay in sync
-cargo fmt --manifest-path src-tauri/Cargo.toml --check
-cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings
+pnpm format:rust    # apply rustfmt
+pnpm check:fmt      # rustfmt --check
+pnpm check:clippy
 cargo test --manifest-path src-tauri/Cargo.toml
 ```
 

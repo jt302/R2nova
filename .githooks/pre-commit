@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+root="$(git rev-parse --show-toplevel)"
+# shellcheck source=lib.sh
+source "$root/.githooks/lib.sh"
+
+need() {
+	if ! command -v "$1" >/dev/null; then
+		echo "pre-commit: $1 not found" >&2
+		exit 1
+	fi
+}
+
+need pnpm
+need cargo
+
+staged="$(git diff --cached --name-only --diff-filter=ACMR || true)"
+
+echo "→ biome (staged)"
+pnpm -s check:staged
+
+echo "→ rustfmt"
+pnpm -s check:fmt
+
+need_clippy=0
+need_release=0
+while IFS= read -r file; do
+	[ -z "$file" ] && continue
+	case "$file" in
+		*.rs|src-tauri/Cargo.toml|src-tauri/Cargo.lock|rustfmt.toml|rust-toolchain.toml)
+			need_clippy=1
+			;;
+	esac
+	case "$file" in
+		package.json|src-tauri/Cargo.toml|src-tauri/tauri.conf.json)
+			need_release=1
+			;;
+	esac
+done <<< "$staged"
+
+if [ "$need_clippy" -eq 1 ]; then
+	echo "→ clippy"
+	pnpm -s check:clippy
+fi
+
+if [ "$need_release" -eq 1 ]; then
+	echo "→ release:check"
+	pnpm -s release:check
+fi

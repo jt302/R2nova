@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+root="$(git rev-parse --show-toplevel)"
+# shellcheck source=lib.sh
+source "$root/.githooks/lib.sh"
+
+need() {
+	if ! command -v "$1" >/dev/null; then
+		echo "pre-push: $1 not found" >&2
+		exit 1
+	fi
+}
+
+need pnpm
+need cargo
+
+echo "→ typecheck"
+pnpm -s typecheck
+
+echo "→ frontend tests"
+pnpm -s test
+
+echo "→ cargo test"
+cargo test --manifest-path src-tauri/Cargo.toml

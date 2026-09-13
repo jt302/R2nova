@@ -9,15 +9,21 @@
 		"build": "tsc --noEmit && vite build",
 		"preview": "vite preview",
 		"format": "biome format --write .",
+		"format:rust": "cargo fmt --manifest-path src-tauri/Cargo.toml",
 		"lint": "biome lint .",
 		"check": "biome check .",
 		"check:write": "biome check --write .",
+		"check:staged": "biome check --staged --no-errors-on-unmatched",
+		"check:fmt": "cargo fmt --manifest-path src-tauri/Cargo.toml --check",
+		"check:clippy": "cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings",
+		"check:all": "pnpm release:check && pnpm check && pnpm test && pnpm build && pnpm check:fmt && pnpm check:clippy && cargo test --manifest-path src-tauri/Cargo.toml",
 		"typecheck": "tsc --noEmit",
 		"test": "vitest run",
 		"test:watch": "vitest",
 		"tauri": "tauri",
 		"icon": "rsvg-convert -w 1024 -h 1024 app-icon.svg -o /tmp/r2nova-app-icon.png && pnpm tauri icon /tmp/r2nova-app-icon.png && cp src-tauri/icons/32x32.png public/icon.png && rm -rf src-tauri/icons/ios src-tauri/icons/android",
-		"release:check": "node scripts/check-version-consistency.mjs"
+		"release:check": "node scripts/check-version-consistency.mjs",
+		"prepare": "git config core.hooksPath .githooks"
 	},
 	"dependencies": {
 		"@headless-tree/core": "^1.7.0",
